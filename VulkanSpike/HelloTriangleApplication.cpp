@@ -226,8 +226,8 @@ void HelloTriangleApplication::createSemaphores() {
  void HelloTriangleApplication::createGraphicsPipeline() {
 
 	//get byte code of shaders
-	auto vertShaderCode = readFile("shaders/vert.spv");
-	auto fragShaderCode = readFile("shaders/frag.spv");
+	auto vertShaderCode = readFile("./shaders/vert.spv");
+	auto fragShaderCode = readFile("./shaders/frag.spv");
 
 	//create modules (dumb wrappers of the byte code)
 	VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);

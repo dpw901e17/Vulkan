@@ -2,7 +2,7 @@
 
 #if true
 	#define GLFW_INCLUDE_VULKAN	//<-- makes sure glfw includes vulkan
-	#include <glfw3.h>	
+	#include <GLFW/glfw3.h>	
 #else
 	#include <vulkan\vulkan.h>	//<-- can be used to for off-screen rendering
 #endif
