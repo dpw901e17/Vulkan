@@ -105,7 +105,7 @@ private:
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
 
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
-	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities);
+	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
 
 	// Handles (window) events
 	void mainLoop();
@@ -114,4 +114,10 @@ private:
 
 	// Destroys allocated stuff gracefully
 	void cleanup();
+
+	void recreateSwapChain();
+
+	void cleanupSwapChan();
+
+	static void onWindowResize(GLFWwindow* window, int width, int height);
 };
