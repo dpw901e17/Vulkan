@@ -152,7 +152,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HelloTriangleApplication.h" />
+    <ClInclude Include="QueueFamilyIndices.h" />
+    <ClInclude Include="SwapChainSupportDetails.h" />
     <ClInclude Include="Utility.h" />
+    <ClInclude Include="Vertex.h" />
     <ClInclude Include="VulkanTest.h" />
   </ItemGroup>
   <ItemGroup>
