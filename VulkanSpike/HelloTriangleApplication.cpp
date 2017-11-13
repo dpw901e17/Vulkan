@@ -1,74 +1,29 @@
 #include "HelloTriangleApplication.h"
 #include <algorithm>
-#include <array>
 #include <glm/glm.hpp>
 #include <set>
+
+#include "SwapChainSupportDetails.h"
+#include "QueueFamilyIndices.h"
 #include "Utility.h"
+#include "Vertex.h"
+
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
-
-struct QueueFamilyIndices {
-	int graphicsFamily = -1; //<-- "not found"
-	int presentFamily = -1;
-
-	bool isComplete() {
-		return graphicsFamily >= 0 && presentFamily >= 0;
-	}
-};
-
-struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentmodes;
-};
 
 const std::vector<const char*> HelloTriangleApplication::deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-struct Vertex
-{
-	glm::vec2 position;
-	glm::vec3 color;
-
-	static VkVertexInputBindingDescription getBindingDescription()
-	{
-		VkVertexInputBindingDescription binding_description = {};
-
-		binding_description.binding = 0;
-		binding_description.stride = sizeof(Vertex);
-		binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // Replace with VK_VERTEX_INPUT_RATE_INSTANCE for instancing
-
-		return binding_description;
-	}
-
-	static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
-	{
-		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
-
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, position);
-
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-		return attributeDescriptions;
-	}
-};
-
-const std::vector<Vertex> vertices = {
+const std::vector<Vertex> HelloTriangleApplication::vertices = {
 	{{ -0.5f, -0.5 }, { 1.0f, 0.0f, 0.0f }},
 	{{  0.5f, -0.5 }, { 0.0f, 1.0f, 0.0f }},
 	{{  0.5f,  0.5 }, { 0.0f, 0.0f, 1.0f }},
 	{{ -0.5f,  0.5 }, { 1.0f, 1.0f, 1.0f }}
 };
 
-const std::vector<uint16_t> indices = {
+const std::vector<uint16_t>HelloTriangleApplication::indices = {
 	0, 1, 2, 2, 3, 0
 };
 
@@ -113,7 +68,7 @@ void HelloTriangleApplication::createVertexBuffer()
 
 void HelloTriangleApplication::createIndexBuffer()
 {
-	auto buffer_size = sizeof(indices[0])*indices.size();
+	auto buffer_size = sizeof indices[0]*indices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -172,7 +127,7 @@ void HelloTriangleApplication::createSemaphores() {
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.commandPool = commandPool;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; //buffers can be primary (called to by user) or secondary (called to by primary buffer)
-	allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
+	allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
 	if (vkAllocateCommandBuffers(logicalDevice, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate command buffers!");
@@ -285,7 +240,7 @@ void HelloTriangleApplication::createSemaphores() {
 	colorAttatchment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttatchment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // Image is presented in swap chain
 
-	VkAttachmentReference colorAttatchmentRef = {};
+	VkAttachmentReference colorAttatchmentRef;
 	colorAttatchmentRef.attachment = 0; // Since we only have one attatchment
 	colorAttatchmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
@@ -369,16 +324,16 @@ void HelloTriangleApplication::createSemaphores() {
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 	// Creating a viewport to render to
-	VkViewport viewport = {};
+	VkViewport viewport;
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = (float)swapChainExtent.width;
-	viewport.height = (float)swapChainExtent.height;
+	viewport.width = static_cast<float>(swapChainExtent.width);
+	viewport.height = static_cast<float>(swapChainExtent.height);
 	viewport.minDepth = 0.0f; // What is?
 	viewport.maxDepth = 1.0f;
 
 	// Scissor rectangle. Defines image cropping of viewport.
-	VkRect2D scissor = {};
+	VkRect2D scissor;
 	scissor.offset = { 0, 0 }; // xy
 	scissor.extent = swapChainExtent; // width height
 
@@ -414,7 +369,7 @@ void HelloTriangleApplication::createSemaphores() {
 	multisampling.alphaToOneEnable = VK_FALSE; //optional
 
 											   //Color blending
-	VkPipelineColorBlendAttachmentState colorBlendAttatchment = {};
+	VkPipelineColorBlendAttachmentState colorBlendAttatchment;
 	colorBlendAttatchment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	colorBlendAttatchment.blendEnable = VK_FALSE; // TODO: Why false? Try setting to true.
 	colorBlendAttatchment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;  // optional
@@ -436,23 +391,13 @@ void HelloTriangleApplication::createSemaphores() {
 	colorBlending.blendConstants[2] = 0.0f; // optional
 	colorBlending.blendConstants[3] = 0.0f; // optional
 
-											//Dynamic state for changing parts of pipeline at runtime
-	VkDynamicState dynamicStates[] = {
-		VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_LINE_WIDTH
-	};
-
-	VkPipelineDynamicStateCreateInfo dynamicState = {};
-	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicState.dynamicStateCount = 2;
-	dynamicState.pDynamicStates = dynamicStates;
-
-	// For uniforms
+	 // For uniforms
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 0;
 	pipelineLayoutInfo.pSetLayouts = nullptr;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
-	pipelineLayoutInfo.pPushConstantRanges = 0;
+	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
 	if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create pipeline layout!");
@@ -499,7 +444,8 @@ void HelloTriangleApplication::createSemaphores() {
 	vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
 }
 
- VkShaderModule HelloTriangleApplication::createShaderModule(const std::vector<char>& code) {
+ VkShaderModule HelloTriangleApplication::createShaderModule(const std::vector<char>& code) const
+ {
 	VkShaderModuleCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = code.size();
@@ -542,8 +488,6 @@ void HelloTriangleApplication::createSemaphores() {
 		createInfo.subresourceRange.baseArrayLayer = 0;
 		createInfo.subresourceRange.layerCount = 1;
 
-		auto res = vkCreateImageView(logicalDevice, &createInfo, nullptr, &swapChainImageViews[i]);
-
 		if (vkCreateImageView(logicalDevice, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create image views!");
 		}
@@ -577,8 +521,8 @@ void HelloTriangleApplication::createSemaphores() {
 
 	QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 	uint32_t queueFamilyIndices[] = {
-		(uint32_t)indices.graphicsFamily,
-		(uint32_t)indices.presentFamily
+		static_cast<uint32_t>(indices.graphicsFamily),
+		static_cast<uint32_t>(indices.presentFamily)
 	};
 
 	if (indices.graphicsFamily != indices.presentFamily) {
@@ -697,12 +641,13 @@ void HelloTriangleApplication::createSemaphores() {
 		i++;
 	}
 
-	if (physicalDevice == VK_NULL_HANDLE) {
+	if (!physicalDevice) {
 		throw std::runtime_error("failed to find suitable GPU!");
 	}
 }
 
- QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(const VkPhysicalDevice& device) {
+ QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(const VkPhysicalDevice& device) const
+ {
 	QueueFamilyIndices indices;
 
 	uint32_t queueFamilyCount = 0;
@@ -739,7 +684,8 @@ void HelloTriangleApplication::createSemaphores() {
 	return indices;
 }
 
- bool HelloTriangleApplication::isDeviceSuitable(const VkPhysicalDevice& device) {
+ bool HelloTriangleApplication::isDeviceSuitable(const VkPhysicalDevice& device) const
+ {
 
 	QueueFamilyIndices indices = findQueueFamilies(device);
 
@@ -753,7 +699,8 @@ void HelloTriangleApplication::createSemaphores() {
 	return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
- bool HelloTriangleApplication::checkDeviceExtensionSupport(const VkPhysicalDevice& device) {
+ bool HelloTriangleApplication::checkDeviceExtensionSupport(const VkPhysicalDevice& device)
+ {
 	uint32_t extensionCount;
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
@@ -787,9 +734,8 @@ void HelloTriangleApplication::createSemaphores() {
 	//Vulkan is platform agnostic, so it needs to know what extensions it can interface with:
 	//(conveniently extracted from GLFW)
 	unsigned int glfwExtensionCount = 0;
-	const char** glfwExtensions;
 
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	const char ** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
 	createInfo.enabledExtensionCount = glfwExtensionCount;
 	createInfo.ppEnabledExtensionNames = glfwExtensions;
@@ -806,7 +752,8 @@ void HelloTriangleApplication::createSemaphores() {
 	}
 }
 
- SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(const VkPhysicalDevice& device) {
+ SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(const VkPhysicalDevice& device) const
+ {
 	SwapChainSupportDetails details;
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
@@ -856,7 +803,7 @@ void HelloTriangleApplication::createSemaphores() {
 		if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 			return availablePresentMode;
 		}
-		else if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+		if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
 			bestMode = availablePresentMode;
 		}
 	}
@@ -1100,7 +1047,7 @@ void HelloTriangleApplication::copyBuffer(VkBuffer source, VkBuffer destination,
 
 	vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
-	VkBufferCopy copyRegion = {};
+	VkBufferCopy copyRegion;
 	copyRegion.srcOffset = 0; // Optional
 	copyRegion.dstOffset = 0; // Optional
 	copyRegion.size = size;

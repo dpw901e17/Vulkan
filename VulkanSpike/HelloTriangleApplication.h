@@ -11,6 +11,7 @@
 
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
+struct Vertex;
 
 
 class HelloTriangleApplication {
@@ -50,6 +51,8 @@ private:
 	VkDeviceMemory indexBufferMemory;
 
 	static const std::vector<const char*> deviceExtensions;
+	static const std::vector<Vertex> vertices;
+	static const std::vector<uint16_t> indices;
 
 	// Crates a GLFW window (without OpenGL context)
 	void initWindow();
