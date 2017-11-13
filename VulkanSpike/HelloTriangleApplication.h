@@ -46,6 +46,8 @@ private:
 	VkSemaphore renderFinishedSemaphore;
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
+	VkBuffer indexBuffer;
+	VkDeviceMemory indexBufferMemory;
 
 	static const std::vector<const char*> deviceExtensions;
 
@@ -53,6 +55,7 @@ private:
 	void initWindow();
 
 	void createVertexBuffer();
+	void createIndexBuffer();
 	// Initializes Vulkan
 	void initVulkan();
 
