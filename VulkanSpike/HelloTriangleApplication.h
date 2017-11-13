@@ -125,4 +125,7 @@ private:
 	static void onWindowResize(GLFWwindow* window, int width, int height);
 
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
+
+	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
+	void copyBuffer(VkBuffer source, VkBuffer destination, VkDeviceSize) const;
 };
