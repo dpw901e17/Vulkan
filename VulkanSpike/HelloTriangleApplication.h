@@ -44,12 +44,15 @@ private:
 	std::vector<VkCommandBuffer> commandBuffers;
 	VkSemaphore imageAvaliableSemaphore;
 	VkSemaphore renderFinishedSemaphore;
+	VkBuffer vertexBuffer;
+	VkDeviceMemory vertexBufferMemory;
 
 	static const std::vector<const char*> deviceExtensions;
 
 	// Crates a GLFW window (without OpenGL context)
 	void initWindow();
 
+	void createVertexBuffer();
 	// Initializes Vulkan
 	void initVulkan();
 
@@ -120,4 +123,6 @@ private:
 	void cleanupSwapChan();
 
 	static void onWindowResize(GLFWwindow* window, int width, int height);
+
+	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 };

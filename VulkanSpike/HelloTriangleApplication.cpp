@@ -1,7 +1,9 @@
 #include "HelloTriangleApplication.h"
-#include "Utility.h"
-#include <set>
 #include <algorithm>
+#include <array>
+#include <glm/glm.hpp>
+#include <set>
+#include "Utility.h"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -25,6 +27,46 @@ const std::vector<const char*> HelloTriangleApplication::deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
+struct Vertex
+{
+	glm::vec2 position;
+	glm::vec3 color;
+
+	static VkVertexInputBindingDescription getBindingDescription()
+	{
+		VkVertexInputBindingDescription binding_description = {};
+
+		binding_description.binding = 0;
+		binding_description.stride = sizeof(Vertex);
+		binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // Replace with VK_VERTEX_INPUT_RATE_INSTANCE for instancing
+
+		return binding_description;
+	}
+
+	static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
+	{
+		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(Vertex, position);
+
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+		return attributeDescriptions;
+	}
+};
+
+const std::vector<Vertex> vertices = {
+	{{  0.0f, -0.5 }, { 1.0f, 0.0f, 0.0f }},
+	{{  0.5f,  0.5 }, { 0.0f, 1.0f, 0.0f }},
+	{{ -0.5f,  0.5 }, { 0.0f, 0.0f, 1.0f }}
+};
+
 // Crates a GLFW window (without OpenGL context)
 void HelloTriangleApplication::initWindow() {
 	glfwInit();
@@ -42,6 +84,39 @@ void HelloTriangleApplication::initWindow() {
 	glfwSetWindowSizeCallback(window, onWindowResize);
 }
 
+void HelloTriangleApplication::createVertexBuffer()
+{
+	VkBufferCreateInfo buffer_info = {};
+	buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_info.size = sizeof(Vertex)*vertices.size();
+	buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if (vkCreateBuffer(logicalDevice, &buffer_info, nullptr, &vertexBuffer) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create Vertex Buffer!");
+	}
+
+	VkMemoryRequirements memRequirements;
+	vkGetBufferMemoryRequirements(logicalDevice, vertexBuffer, &memRequirements);
+
+	VkMemoryAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memRequirements.size;
+	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	if(vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &vertexBufferMemory))
+	{
+		throw std::runtime_error("Failed to allocate vertex buffer memory!");
+	}
+
+	vkBindBufferMemory(logicalDevice, vertexBuffer, vertexBufferMemory, 0);
+
+	void* data;
+	vkMapMemory(logicalDevice, vertexBufferMemory, 0, buffer_info.size, 0, &data);
+	memcpy(data, vertices.data(), buffer_info.size);
+	vkUnmapMemory(logicalDevice, vertexBufferMemory);
+}
+
 // Initializes Vulkan
 void HelloTriangleApplication::initVulkan() {
 	createInstance();
@@ -55,6 +130,7 @@ void HelloTriangleApplication::initVulkan() {
 	createGraphicsPipeline();
 	createFramebuffers();
 	createCommandPool();
+	createVertexBuffer();
 	createCommandBuffers();
 	createSemaphores();
 }
@@ -68,9 +144,6 @@ void HelloTriangleApplication::createSemaphores() {
 	{
 		throw std::runtime_error("failed to create semaphores!");
 	}
-
-
-
 }
 
  void HelloTriangleApplication::createCommandBuffers() {
@@ -123,9 +196,13 @@ void HelloTriangleApplication::createSemaphores() {
 			graphicsPipeline
 		);
 
+		VkBuffer vertexBuffers[] = { vertexBuffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+
 		vkCmdDraw(
 			commandBuffers[i],
-			3,	//<-- no of vertices
+			vertices.size(),	//<-- no of vertices
 			1,	//<-- NOT instanced rendering
 			0,	//<-- first vertex (i.e. offset in vertexbuffer)
 			0	//<-- offset for instanced rendering 
@@ -259,10 +336,13 @@ void HelloTriangleApplication::createSemaphores() {
 	// Information on how to read from vertex buffer. Not used now
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputInfo.vertexBindingDescriptionCount = 0;
-	vertexInputInfo.pVertexBindingDescriptions = nullptr; //Optional
-	vertexInputInfo.vertexAttributeDescriptionCount = 0;
-	vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+
+	auto bindingDescription = Vertex::getBindingDescription();
+	auto attribute_descriptions = Vertex::getAttributeDescriptions();
+	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.vertexAttributeDescriptionCount = attribute_descriptions.size();
+	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+	vertexInputInfo.pVertexAttributeDescriptions = attribute_descriptions.data();
 
 															// How to interepret vertex data. Is a triangle
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -882,6 +962,9 @@ void HelloTriangleApplication::drawFrame() {
 void HelloTriangleApplication::cleanup() {
 	cleanupSwapChan();
 
+	vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
+	vkFreeMemory(logicalDevice, vertexBufferMemory, nullptr);
+
 	vkDestroySemaphore(logicalDevice, renderFinishedSemaphore, nullptr);
 	vkDestroySemaphore(logicalDevice, imageAvaliableSemaphore, nullptr);
 
@@ -936,4 +1019,18 @@ void HelloTriangleApplication::onWindowResize(GLFWwindow* window, int width, int
 	auto app = static_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
 
 	app->recreateSwapChain();
+}
+
+uint32_t HelloTriangleApplication::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
+{
+	VkPhysicalDeviceMemoryProperties memProperties;
+	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+	for (auto i = 0; i < memProperties.memoryTypeCount; i++) {
+		if (typeFilter & 1 << i && memProperties.memoryTypes[i].propertyFlags & properties) {
+			return i;
+		}
+	}
+
+	throw std::runtime_error("failed to find suitable memory type!");
 }
