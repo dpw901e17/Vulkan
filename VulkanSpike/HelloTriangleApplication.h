@@ -74,7 +74,7 @@ private:
 
 	void createGraphicsPipeline();
 
-	VkShaderModule createShaderModule(const std::vector<char>& code);
+	VkShaderModule createShaderModule(const std::vector<char>& code) const;
 
 	void createImageViews();
 
@@ -93,25 +93,25 @@ private:
 	void pickPhysicalDevice();
 
 	// Finds and returns Queue-families to fill the struct QueueFamilyIndices.
-	QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device);
+	QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device) const;
 
 	// Determines if the given physical device supports both Queue-families and "deviceExtensions"
-	bool isDeviceSuitable(const VkPhysicalDevice& device);
+	bool isDeviceSuitable(const VkPhysicalDevice& device) const;
 
 	// Determines if the physical device supports all extensions in "deviceExtensions"
-	bool checkDeviceExtensionSupport(const VkPhysicalDevice& device);
+	static bool checkDeviceExtensionSupport(const VkPhysicalDevice& device);
 
 	// Initializes Vulkan "instance" (think OpenGL context) + loads glfw extensions
 	void createInstance();
 
 	// Queries for the capabilities of the physical device, surface format, and present mode
-	SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice& device);
+	SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice& device) const;
 
 	// Finds and returns the optimal format (colour space + colour format).
-	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+	static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 
 	// Finds and returns the optimal present mode (i.e. how we write to swapchain).
-	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
+	static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
 
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
 	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
