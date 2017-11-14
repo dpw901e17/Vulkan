@@ -38,6 +38,7 @@ private:
 	VkExtent2D swapChainExtent;
 	std::vector<VkImageView> swapChainImageViews;
 	VkRenderPass renderPass;
+	VkDescriptorSetLayout descriptorSetLayout;
 	VkPipelineLayout pipelineLayout;
 	VkPipeline graphicsPipeline;
 	std::vector<VkFramebuffer> swapChainFramebuffers;
@@ -45,10 +46,14 @@ private:
 	std::vector<VkCommandBuffer> commandBuffers;
 	VkSemaphore imageAvaliableSemaphore;
 	VkSemaphore renderFinishedSemaphore;
+	VkDebugReportCallbackEXT callback;
+
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
 	VkBuffer indexBuffer;
 	VkDeviceMemory indexBufferMemory;
+	VkBuffer uniformBuffer;
+	VkDeviceMemory uniformBufferMemory;
 
 	static const std::vector<const char*> deviceExtensions;
 	static const std::vector<Vertex> vertices;
@@ -59,6 +64,9 @@ private:
 
 	void createVertexBuffer();
 	void createIndexBuffer();
+	void createDescriptorSetLayout();
+	void createUniformBuffer();
+	void setupDebugCallback();
 	// Initializes Vulkan
 	void initVulkan();
 
@@ -116,6 +124,7 @@ private:
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
 	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
 
+	void updateUniformBuffer();
 	// Handles (window) events
 	void mainLoop();
 

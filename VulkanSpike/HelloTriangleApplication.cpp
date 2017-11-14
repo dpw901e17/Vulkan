@@ -1,6 +1,10 @@
 #include "HelloTriangleApplication.h"
+
 #include <algorithm>
+#include <chrono>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 #include <set>
 
 #include "SwapChainSupportDetails.h"
@@ -11,6 +15,66 @@
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
+
+const std::vector<const char*> validationLayers = {
+	"VK_LAYER_LUNARG_standard_validation"
+};
+
+#ifdef NDEBUG
+const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = true;
+#endif
+
+struct UniformBufferObject
+{
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
+};
+
+
+VkResult CreateDebugReportCallbackEXT(VkInstance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugReportCallbackEXT* pCallback) {
+	auto func = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+	if (func != nullptr) {
+		return func(instance, pCreateInfo, pAllocator, pCallback);
+	}
+	else {
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
+}
+
+void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator) {
+	auto func = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+	if (func != nullptr) {
+		func(instance, callback, pAllocator);
+	}
+}
+
+bool checkValidationLayerSupport() {
+	uint32_t layerCount;
+	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+	std::vector<VkLayerProperties> availableLayers(layerCount);
+	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+	for (auto layerName : validationLayers) {
+		auto layerFound = false;
+
+		for (const auto& layerProperties : availableLayers) {
+			if (strcmp(layerName, layerProperties.layerName) == 0) {
+				layerFound = true;
+				break;
+			}
+		}
+
+		if (!layerFound) {
+			return false;
+		}
+	}
+
+	return true;
+}
 
 const std::vector<const char*> HelloTriangleApplication::deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -88,21 +152,77 @@ void HelloTriangleApplication::createIndexBuffer()
 	vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
 }
 
+void HelloTriangleApplication::createDescriptorSetLayout()
+{
+	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+	uboLayoutBinding.binding = 0;
+	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboLayoutBinding.descriptorCount = 1;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uboLayoutBinding.pImmutableSamplers = nullptr; // optional
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &uboLayoutBinding;
+
+	if(vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create discriptor set layout!");
+	}
+}
+
+void HelloTriangleApplication::createUniformBuffer()
+{
+	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+	createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffer, uniformBufferMemory);
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+	VkDebugReportFlagsEXT flags, 
+	VkDebugReportObjectTypeEXT objType, 
+	uint64_t obj, 
+	size_t location, 
+	int32_t code, 
+	const char* layerPrefix, 
+	const char* msg, 
+	void* userdata)
+{
+	std::cerr << "Validation Layer: " << msg << std::endl;
+	return VK_FALSE;
+}
+
+void HelloTriangleApplication::setupDebugCallback()
+{
+	if (!enableValidationLayers) return;
+
+	VkDebugReportCallbackCreateInfoEXT createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
+	createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+	createInfo.pfnCallback = debugCallback;
+
+	if (CreateDebugReportCallbackEXT(instance, &createInfo, nullptr, &callback) != VK_SUCCESS) {
+		throw std::runtime_error("failed to set up debug callback!");
+	}
+}
+
 // Initializes Vulkan
 void HelloTriangleApplication::initVulkan() {
 	createInstance();
-	//setupDebugCallback();
+	setupDebugCallback();
 	createSurface();
 	pickPhysicalDevice();
 	createLogicalDevice();
 	createSwapChain();
 	createImageViews();
 	createRenderPass();
+	createDescriptorSetLayout();
 	createGraphicsPipeline();
 	createFramebuffers();
 	createCommandPool();
 	createVertexBuffer();
 	createIndexBuffer();
+	createUniformBuffer();
 	createCommandBuffers();
 	createSemaphores();
 }
@@ -394,8 +514,8 @@ void HelloTriangleApplication::createSemaphores() {
 	 // For uniforms
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
-	pipelineLayoutInfo.pSetLayouts = nullptr;
+	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
@@ -716,7 +836,29 @@ void HelloTriangleApplication::createSemaphores() {
 	return requiredExtensions.empty();
 }
 
+std::vector<const char*> getRequiredExtensions()
+{
+	std::vector<const char*> extensions;
+
+	unsigned int glfwExtensionCount = 0;
+	auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+	for (unsigned int i = 0; i < glfwExtensionCount; i++) {
+		extensions.push_back(glfwExtensions[i]);
+	}
+
+	if (enableValidationLayers) {
+		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+	}
+
+	return extensions;
+}
+
  void HelloTriangleApplication::createInstance() {
+	 if (enableValidationLayers && !checkValidationLayerSupport()) {
+		 throw std::runtime_error("validation layers requested, but not available!");
+	 }
+
 	//VkApplicationInfo is technically optional, but can be used to optimize
 	VkApplicationInfo appInfo = {};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -735,12 +877,18 @@ void HelloTriangleApplication::createSemaphores() {
 	//(conveniently extracted from GLFW)
 	unsigned int glfwExtensionCount = 0;
 
-	const char ** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	auto extensions = getRequiredExtensions();
+	createInfo.enabledExtensionCount = extensions.size();
+	createInfo.ppEnabledExtensionNames = extensions.data();
 
-	createInfo.enabledExtensionCount = glfwExtensionCount;
-	createInfo.ppEnabledExtensionNames = glfwExtensions;
-
-	createInfo.enabledLayerCount = 0;
+	if (enableValidationLayers) {
+		createInfo.enabledLayerCount = validationLayers.size();
+		createInfo.ppEnabledLayerNames = validationLayers.data();
+	}
+	else
+	{
+		createInfo.enabledLayerCount = 0;
+	}
 
 	VkResult result = vkCreateInstance(
 		&createInfo,	//<-- info filled in above
@@ -834,11 +982,31 @@ void HelloTriangleApplication::createSemaphores() {
 	 return actualExtent;
  }
 
- void HelloTriangleApplication::mainLoop() {
+void HelloTriangleApplication::updateUniformBuffer()
+{
+	static auto start_time = std::chrono::high_resolution_clock::now();
+
+	auto current_time = std::chrono::high_resolution_clock::now();
+	auto time = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count() / 1000.0f;
+
+	UniformBufferObject ubo = {};
+	ubo.model = rotate(glm::mat4(), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
+	ubo.proj[1][1] *= -1; // flip up and down
+
+	void* data;
+	vkMapMemory(logicalDevice, uniformBufferMemory, 0, sizeof(ubo), 0, &data);
+	memcpy(data, &ubo, sizeof(ubo));
+	vkUnmapMemory(logicalDevice, uniformBufferMemory);
+}
+
+void HelloTriangleApplication::mainLoop() {
 
 	//standard event loop
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
+		updateUniformBuffer();
 		drawFrame();
 	}
 
@@ -927,10 +1095,14 @@ void HelloTriangleApplication::drawFrame() {
 void HelloTriangleApplication::cleanup() {
 	cleanupSwapChan();
 
+	vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
+
 	vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
 	vkFreeMemory(logicalDevice, vertexBufferMemory, nullptr);
 	vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
 	vkFreeMemory(logicalDevice, indexBufferMemory, nullptr);
+	vkDestroyBuffer(logicalDevice, uniformBuffer, nullptr);
+	vkFreeMemory(logicalDevice, uniformBufferMemory, nullptr);
 
 	vkDestroySemaphore(logicalDevice, renderFinishedSemaphore, nullptr);
 	vkDestroySemaphore(logicalDevice, imageAvaliableSemaphore, nullptr);
@@ -939,6 +1111,7 @@ void HelloTriangleApplication::cleanup() {
 
 	vkDestroyDevice(logicalDevice, nullptr);
 	vkDestroySurfaceKHR(instance, surface, nullptr);
+	DestroyDebugReportCallbackEXT(instance, callback, nullptr);
 	//clean stuff regarding instance before instance itself
 	vkDestroyInstance(instance, nullptr);
 
