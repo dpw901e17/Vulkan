@@ -32,7 +32,7 @@ private:
 	VkQueue graphicsQueue;
 	VkSurfaceKHR surface;
 	VkQueue presentQueue;
-	VkSwapchainKHR swapChain;
+	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 	std::vector<VkImage> swapChainImages;
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
@@ -139,7 +139,7 @@ private:
 
 	void recreateSwapChain();
 
-	void cleanupSwapChan();
+	void cleanupSwapChain();
 
 	static void onWindowResize(GLFWwindow* window, int width, int height);
 

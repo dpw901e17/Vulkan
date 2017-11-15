@@ -1144,7 +1144,7 @@ void HelloTriangleApplication::drawFrame() {
 }
 
 void HelloTriangleApplication::cleanup() {
-	cleanupSwapChan();
+	cleanupSwapChain();
 
 	vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 
@@ -1177,6 +1177,8 @@ void HelloTriangleApplication::recreateSwapChain()
 {
 	vkDeviceWaitIdle(logicalDevice);
 
+	cleanupSwapChain();
+
 	createSwapChain();
 	createImageViews();
 	createRenderPass();
@@ -1185,7 +1187,7 @@ void HelloTriangleApplication::recreateSwapChain()
 	createCommandBuffers();
 }
 
-void HelloTriangleApplication::cleanupSwapChan()
+void HelloTriangleApplication::cleanupSwapChain()
 {
 	vkDeviceWaitIdle(logicalDevice);
 	for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
