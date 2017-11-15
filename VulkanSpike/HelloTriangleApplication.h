@@ -8,7 +8,6 @@
 #endif
 
 #include <vector>
-#include <stb\stb_image.h>
 
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
@@ -57,6 +56,8 @@ private:
 	VkDeviceMemory uniformBufferMemory;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSet descriptorSet;
+	VkImage textureImage;
+	VkDeviceMemory textureImageMemory;
 
 	static const std::vector<const char*> deviceExtensions;
 	static const std::vector<Vertex> vertices;
@@ -147,7 +148,14 @@ private:
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
-	void copyBuffer(VkBuffer source, VkBuffer destination, VkDeviceSize) const;
+	void copyBuffer(VkBuffer source, VkBuffer destination, VkDeviceSize);
 
 	void createTextureImage();
+
+	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+
+	VkCommandBuffer beginSingleTimeCommands();
+	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 };
