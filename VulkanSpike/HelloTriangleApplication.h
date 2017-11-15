@@ -54,6 +54,8 @@ private:
 	VkDeviceMemory indexBufferMemory;
 	VkBuffer uniformBuffer;
 	VkDeviceMemory uniformBufferMemory;
+	VkDescriptorPool descriptorPool;
+	VkDescriptorSet descriptorSet;
 
 	static const std::vector<const char*> deviceExtensions;
 	static const std::vector<Vertex> vertices;
@@ -67,6 +69,8 @@ private:
 	void createDescriptorSetLayout();
 	void createUniformBuffer();
 	void setupDebugCallback();
+	void createDescriptorPool();
+	void createDescriptorSet();
 	// Initializes Vulkan
 	void initVulkan();
 

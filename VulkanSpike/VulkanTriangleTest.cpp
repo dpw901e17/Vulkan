@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdexcept>
 
+
 // Called from main(). Runs this example.
 int runVulkanTest() {
 	HelloTriangleApplication app;
@@ -13,8 +14,8 @@ int runVulkanTest() {
 	catch (const std::runtime_error& e) {
 		std::cerr << e.what() << std::endl;
 		system("pause");
-		return EXIT_FAILURE;
+		exit(EXIT_FAILURE);
 	}
 
-	return EXIT_SUCCESS;
+	exit(EXIT_SUCCESS);
 }
