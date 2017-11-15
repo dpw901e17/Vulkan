@@ -269,6 +269,7 @@ void HelloTriangleApplication::initVulkan() {
 	createGraphicsPipeline();
 	createFramebuffers();
 	createCommandPool();
+	createTextureImage();
 	createVertexBuffer();
 	createIndexBuffer();
 	createUniformBuffer();
@@ -1292,4 +1293,9 @@ void HelloTriangleApplication::copyBuffer(VkBuffer source, VkBuffer destination,
 	vkQueueWaitIdle(graphicsQueue);
 
 	vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
+}
+
+void HelloTriangleApplication::createTextureImage()
+{
+
 }

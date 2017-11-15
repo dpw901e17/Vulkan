@@ -8,6 +8,7 @@
 #endif
 
 #include <vector>
+#include <stb\stb_image.h>
 
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
@@ -147,4 +148,6 @@ private:
 
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
 	void copyBuffer(VkBuffer source, VkBuffer destination, VkDeviceSize) const;
+
+	void createTextureImage();
 };
