@@ -58,6 +58,8 @@ private:
 	VkDescriptorSet descriptorSet;
 	VkImage textureImage;
 	VkDeviceMemory textureImageMemory;
+	VkImageView m_TextureImageView;
+	VkSampler m_TextureSampler;
 
 	static const std::vector<const char*> deviceExtensions;
 	static const std::vector<Vertex> vertices;
@@ -73,6 +75,9 @@ private:
 	void setupDebugCallback();
 	void createDescriptorPool();
 	void createDescriptorSet();
+	VkImageView createImageView(VkImage image, VkFormat format) const;
+	void createTextureImageView();
+	void createTextureSampler();
 	// Initializes Vulkan
 	void initVulkan();
 
