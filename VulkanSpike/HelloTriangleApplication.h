@@ -60,6 +60,9 @@ private:
 	VkDeviceMemory textureImageMemory;
 	VkImageView m_TextureImageView;
 	VkSampler m_TextureSampler;
+	VkImage m_DepthImage;
+	VkDeviceMemory m_DepthImageMemory;
+	VkImageView m_DepthImageView;
 
 	static const std::vector<const char*> deviceExtensions;
 	static const std::vector<Vertex> vertices;
@@ -75,9 +78,12 @@ private:
 	void setupDebugCallback();
 	void createDescriptorPool();
 	void createDescriptorSet();
-	VkImageView createImageView(VkImage image, VkFormat format) const;
+	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT) const;
 	void createTextureImageView();
 	void createTextureSampler();
+	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
+	VkFormat findDepthFormat() const;
+	void createDepthResources();
 	// Initializes Vulkan
 	void initVulkan();
 
