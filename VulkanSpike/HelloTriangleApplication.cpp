@@ -1236,21 +1236,8 @@ std::vector<const char*> getRequiredExtensions()
 	 return actualExtent;
  }
 
-void HelloTriangleApplication::updateUniformBuffer(const RenderObject& render_object)
+void HelloTriangleApplication::setUniformBuffer(const UniformBufferObject& ubo)
 {
-	static auto start_time = std::chrono::high_resolution_clock::now();
-
-	auto current_time = std::chrono::high_resolution_clock::now();
-	auto time = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count() / 1000.0f;
-
-	UniformBufferObject ubo;
-	ubo.model = translate(glm::mat4(), {render_object.x(), render_object.y(), render_object.z() });
-	ubo.model = rotate(ubo.model, time * glm::radians(90.0f) / 2, glm::vec3(0.0f, 1.0f, 0.0f));
-	ubo.model = rotate(ubo.model, time * glm::radians(90.0f) / 3, glm::vec3(1.0f, 0.0f, 0.0f));
-	ubo.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
-	ubo.proj[1][1] *= -1; // flip up and down
-
 	void* data;
 	vkMapMemory(logicalDevice, uniformBufferMemory, 0, sizeof(ubo), 0, &data);
 	memcpy(data, &ubo, sizeof(ubo));
@@ -1272,9 +1259,14 @@ void HelloTriangleApplication::mainLoop() {
 		}
 		else
 		{
+			UniformBufferObject ubo;
+			ubo.view = glm::mat4(1);//lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.proj = glm::perspective(glm::radians(m_Scene.camera().FieldOfView()), (float)window->width()/(float)window->height(), m_Scene.camera().Near(), m_Scene.camera().Far());
+			ubo.proj[1][1] *= -1; // flip up and down
 			for(auto& render_object : m_Scene.renderObjects())
 			{
-				updateUniformBuffer(render_object);
+				ubo.model = translate(glm::mat4(), { render_object.x(), render_object.y(), render_object.z() });
+				setUniformBuffer(ubo);
 			}
 			drawFrame();
 		}

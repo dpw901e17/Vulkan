@@ -14,6 +14,7 @@
 #include "../scene-window-system/Window.h"
 #include "../scene-window-system/Scene.h"
 
+struct UniformBufferObject;
 class Scene;
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
@@ -150,7 +151,7 @@ private:
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
 	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
 
-	void updateUniformBuffer(const RenderObject&);
+	void setUniformBuffer(const UniformBufferObject&);
 	// Handles (window) events
 	void mainLoop();
 

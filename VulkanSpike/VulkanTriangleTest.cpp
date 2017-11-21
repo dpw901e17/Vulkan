@@ -7,7 +7,7 @@
 
 // Called from main(). Runs this example.
 int runVulkanTest() {
-	Scene scene(Camera::Default(), { RenderObject(0.0f, 0.0f, 0.0f) });
+	Scene scene(Camera::Default(), { RenderObject(0.0f, -0.55f, -2.0f) });
 	HelloTriangleApplication app(scene);
 
 	try {
