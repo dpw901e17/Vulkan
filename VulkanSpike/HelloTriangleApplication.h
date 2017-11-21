@@ -10,8 +10,8 @@
 #endif
 
 #include <vector>
-#include "Window.h"
 #include <memory>
+#include "../scene-window-system/Window.h"
 
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;

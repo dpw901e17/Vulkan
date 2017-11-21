@@ -149,7 +149,6 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="VulkanDevEnvTest.cpp" />
     <ClCompile Include="VulkanTriangleTest.cpp" />
-    <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HelloTriangleApplication.h" />
@@ -158,12 +157,16 @@
     <ClInclude Include="Utility.h" />
     <ClInclude Include="Vertex.h" />
     <ClInclude Include="VulkanTest.h" />
-    <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="compile.bat" />
     <None Include="shader.frag" />
     <None Include="shader.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\scene-window-system\scene-window-system.vcxproj">
+      <Project>{48127c09-1b72-46fc-b42b-2fdb15d9f2d2}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

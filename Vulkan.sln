@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2006
+VisualStudioVersion = 15.0.27004.2005
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Vulkan", "VulkanSpike\VulkanSpike.vcxproj", "{D1AFC905-B04A-4486-AAC0-D9DAB627A627}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8CF18844-61BC-4631-A997-98961AEF2AB0}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "scene-window-system", "scene-window-system\scene-window-system.vcxproj", "{48127C09-1B72-46FC-B42B-2FDB15D9F2D2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,6 +25,14 @@ Global
 		{D1AFC905-B04A-4486-AAC0-D9DAB627A627}.Release|x64.Build.0 = Release|x64
 		{D1AFC905-B04A-4486-AAC0-D9DAB627A627}.Release|x86.ActiveCfg = Release|Win32
 		{D1AFC905-B04A-4486-AAC0-D9DAB627A627}.Release|x86.Build.0 = Release|Win32
+		{48127C09-1B72-46FC-B42B-2FDB15D9F2D2}.Debug|x64.ActiveCfg = Debug|x64
+		{48127C09-1B72-46FC-B42B-2FDB15D9F2D2}.Debug|x64.Build.0 = Debug|x64
+		{48127C09-1B72-46FC-B42B-2FDB15D9F2D2}.Debug|x86.ActiveCfg = Debug|Win32
+		{48127C09-1B72-46FC-B42B-2FDB15D9F2D2}.Debug|x86.Build.0 = Debug|Win32
+		{48127C09-1B72-46FC-B42B-2FDB15D9F2D2}.Release|x64.ActiveCfg = Release|x64
+		{48127C09-1B72-46FC-B42B-2FDB15D9F2D2}.Release|x64.Build.0 = Release|x64
+		{48127C09-1B72-46FC-B42B-2FDB15D9F2D2}.Release|x86.ActiveCfg = Release|Win32
+		{48127C09-1B72-46FC-B42B-2FDB15D9F2D2}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
