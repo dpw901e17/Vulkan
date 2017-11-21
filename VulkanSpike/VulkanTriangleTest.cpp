@@ -2,11 +2,13 @@
 #include "HelloTriangleApplication.h"
 #include <iostream>
 #include <stdexcept>
+#include "../scene-window-system/Scene.h"
 
 
 // Called from main(). Runs this example.
 int runVulkanTest() {
-	HelloTriangleApplication app;
+	Scene scene(Camera::Default(), { RenderObject(0.0f, 0.0f, 0.0f) });
+	HelloTriangleApplication app(scene);
 
 	try {
 		app.run();

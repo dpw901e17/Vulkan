@@ -132,6 +132,10 @@ const std::vector<uint16_t>HelloTriangleApplication::indices = {
 	4 * 5 + 0, 4 * 5 + 1, 4 * 5 + 2, 4 * 5 + 2, 4 * 5 + 3, 4 * 5 + 0  // Bottom
 };
 
+HelloTriangleApplication::HelloTriangleApplication(Scene scene) : m_Scene(scene)
+{
+}
+
 // Crates a GLFW window (without OpenGL context)
 void HelloTriangleApplication::initWindow() {
 
@@ -1232,7 +1236,7 @@ std::vector<const char*> getRequiredExtensions()
 	 return actualExtent;
  }
 
-void HelloTriangleApplication::updateUniformBuffer()
+void HelloTriangleApplication::updateUniformBuffer(const RenderObject& render_object)
 {
 	static auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -1240,7 +1244,7 @@ void HelloTriangleApplication::updateUniformBuffer()
 	auto time = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count() / 1000.0f;
 
 	UniformBufferObject ubo;
-	ubo.model = rotate(glm::mat4(), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.model = translate(glm::mat4(), {render_object.x(), render_object.y(), render_object.z() });
 	ubo.model = rotate(ubo.model, time * glm::radians(90.0f) / 2, glm::vec3(0.0f, 1.0f, 0.0f));
 	ubo.model = rotate(ubo.model, time * glm::radians(90.0f) / 3, glm::vec3(1.0f, 0.0f, 0.0f));
 	ubo.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -1268,7 +1272,10 @@ void HelloTriangleApplication::mainLoop() {
 		}
 		else
 		{
-			updateUniformBuffer();
+			for(auto& render_object : m_Scene.renderObjects())
+			{
+				updateUniformBuffer(render_object);
+			}
 			drawFrame();
 		}
 	}

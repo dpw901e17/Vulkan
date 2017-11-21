@@ -12,7 +12,9 @@
 #include <vector>
 #include <memory>
 #include "../scene-window-system/Window.h"
+#include "../scene-window-system/Scene.h"
 
+class Scene;
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
 struct Vertex;
@@ -20,6 +22,8 @@ struct Vertex;
 
 class HelloTriangleApplication {
 public:
+	explicit HelloTriangleApplication(Scene scene);
+
 	// Does everything!
 	void run() {
 		initWindow();
@@ -67,6 +71,7 @@ private:
 	VkImage m_DepthImage;
 	VkDeviceMemory m_DepthImageMemory;
 	VkImageView m_DepthImageView;
+	Scene m_Scene;
 
 	static const std::vector<const char*> deviceExtensions;
 	static const std::vector<Vertex> vertices;
@@ -145,7 +150,7 @@ private:
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
 	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
 
-	void updateUniformBuffer();
+	void updateUniformBuffer(const RenderObject&);
 	// Handles (window) events
 	void mainLoop();
 

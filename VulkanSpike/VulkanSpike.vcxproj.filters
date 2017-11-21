@@ -21,9 +21,6 @@
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VulkanDevEnvTest.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="VulkanTriangleTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
