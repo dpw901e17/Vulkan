@@ -31,7 +31,7 @@ private:
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice logicalDevice; // Logical device. Called device in tut.
 	VkQueue graphicsQueue;
-	VkSurfaceKHR surface;
+	VkSurfaceKHR m_Surface;
 	VkQueue presentQueue;
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 	std::vector<VkImage> swapChainImages;
