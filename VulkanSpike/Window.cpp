@@ -12,10 +12,6 @@ Window::Window(HINSTANCE hInstance, LPCTSTR windowName, LPCTSTR windowTitle, int
 	this->fullscreen = fullscreen;
 }
 
-Window::~Window()
-{
-}
-
 HWND Window::GetHandle()
 {
 	if (!hwnd && !IntializeWindow()) {

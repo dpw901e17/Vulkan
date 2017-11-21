@@ -927,7 +927,7 @@ void HelloTriangleApplication::createSemaphores() {
 
 	 auto CreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(vkGetInstanceProcAddr(instance, "vkCreateWin32SurfaceKHR"));
 
-	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(instance, &surface_info, nullptr, &surface) != VK_SUCCESS) {
+	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(instance, &surface_info, nullptr, &m_Surface) != VK_SUCCESS) {
 		 throw std::runtime_error("failed to create window surface!");
 	 }
 }
