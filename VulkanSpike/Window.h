@@ -8,19 +8,20 @@ class Window
 {
 public:
 	Window(HINSTANCE hInstance, LPCTSTR windowName, LPCTSTR windowTitle, int nShowCmd, int width, int height, bool fullscreen);
-	~Window();
 	HWND GetHandle();
-
+	int width() const { return m_Width; }
+	int height() const { return m_Height; }
 private:
 	HINSTANCE hInstance;
 	LPCTSTR windowName;
 	LPCTSTR windowTitle;
-	int width;
-	int height;
+	int m_Width;
+	int m_Height;
 	int nShowCmd;
 	bool fullscreen;
-	HWND hwnd = nullptr;
-	static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	HWND hwnd;
+
+	//static LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	bool IntializeWindow();
 };

@@ -1,14 +1,14 @@
 #include "Window.h"
 #include <stdexcept>
 
-Window::Window(HINSTANCE hInstance, LPCTSTR windowName, LPCTSTR windowTitle, int nShowCmd, int width, int height, bool fullscreen)
+Window::Window(HINSTANCE hInstance, LPCTSTR windowName, LPCTSTR windowTitle, int nShowCmd, int width, int height, bool fullscreen): hwnd(nullptr)
 {
 	this->hInstance = hInstance;
 	this->windowName = windowName;
 	this->windowTitle = windowTitle;
 	this->nShowCmd = nShowCmd;
-	this->width = width;
-	this->height = height;
+	this->m_Width = width;
+	this->m_Height = height;
 	this->fullscreen = fullscreen;
 }
 
@@ -20,7 +20,7 @@ HWND Window::GetHandle()
 	return hwnd;
 }
 
-LRESULT Window::wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
@@ -35,9 +35,9 @@ LRESULT Window::wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
+	default:
+		return DefWindowProc(hwnd, msg, wParam, lParam);
 	}
-	return DefWindowProc(hwnd, msg, wParam, lParam);
-
 }
 
 bool Window::IntializeWindow()
@@ -48,15 +48,15 @@ bool Window::IntializeWindow()
 		MONITORINFO mi = { sizeof(mi) };
 		GetMonitorInfo(hmon, &mi);
 
-		width = mi.rcMonitor.right - mi.rcMonitor.left;
-		height = mi.rcMonitor.bottom - mi.rcMonitor.top;
+		m_Width = mi.rcMonitor.right - mi.rcMonitor.left;
+		m_Height = mi.rcMonitor.bottom - mi.rcMonitor.top;
 	}
 
 	WNDCLASSEX wc;
 
 	wc.cbSize = sizeof(WNDCLASSEX);
 	wc.style = CS_HREDRAW | CS_VREDRAW;
-	wc.lpfnWndProc = this->wndProc;
+	wc.lpfnWndProc = wndProc;
 	wc.cbClsExtra = NULL;
 	wc.cbWndExtra = NULL;
 	wc.hInstance = hInstance;
@@ -79,7 +79,7 @@ bool Window::IntializeWindow()
 		windowTitle,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT,
-		width, height,
+		m_Width, m_Height,
 		NULL, NULL,
 		hInstance, NULL);
 	//if we failed, report it.

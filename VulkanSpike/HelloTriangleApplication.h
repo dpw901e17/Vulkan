@@ -1,14 +1,17 @@
 #pragma once
 
-#if true
+#if false
 	#define GLFW_INCLUDE_VULKAN	//<-- makes sure glfw includes vulkan
 	#define VK_USE_PLATFORM_WIN32_KHR
 	#include <GLFW/glfw3.h>	
 #else
+	#define VK_USE_PLATFORM_WIN32_KHR
 	#include <vulkan\vulkan.h>	//<-- can be used to for off-screen rendering
 #endif
 
 #include <vector>
+#include "Window.h"
+#include <memory>
 
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
@@ -26,7 +29,7 @@ public:
 	}
 
 private:
-	GLFWwindow* window;
+	std::unique_ptr<Window> window;
 	VkInstance instance;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice logicalDevice; // Logical device. Called device in tut.
@@ -154,8 +157,6 @@ private:
 	void recreateSwapChain();
 
 	void cleanupSwapChain();
-
-	static void onWindowResize(GLFWwindow* window, int width, int height);
 
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 

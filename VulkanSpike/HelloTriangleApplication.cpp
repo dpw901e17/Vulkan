@@ -9,13 +9,13 @@
 
 #include <algorithm>
 #include <chrono>
-#include <glfw/glfw3native.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <set>
 #include <stb/stb_image.h>
 #include <thread>		// For non blocking beeps
+#include <vulkan/vulkan.h>
 
 #include "SwapChainSupportDetails.h"
 #include "QueueFamilyIndices.h"
@@ -42,9 +42,10 @@ struct UniformBufferObject
 	glm::mat4 proj;
 };
 
+#define GET_INSTANCE_PROC(name) (PFN_##name)vkGetInstanceProcAddr(instance, #name);
 
 VkResult CreateDebugReportCallbackEXT(VkInstance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugReportCallbackEXT* pCallback) {
-	auto func = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+	static auto func = GET_INSTANCE_PROC(vkCreateDebugReportCallbackEXT);
 	if (func != nullptr) {
 		return func(instance, pCreateInfo, pAllocator, pCallback);
 	}
@@ -54,7 +55,7 @@ VkResult CreateDebugReportCallbackEXT(VkInstance instance, const VkDebugReportCa
 }
 
 void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator) {
-	auto func = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+	static auto func = GET_INSTANCE_PROC(vkDestroyDebugReportCallbackEXT);
 	if (func != nullptr) {
 		func(instance, callback, pAllocator);
 	}
@@ -133,7 +134,11 @@ const std::vector<uint16_t>HelloTriangleApplication::indices = {
 
 // Crates a GLFW window (without OpenGL context)
 void HelloTriangleApplication::initWindow() {
-	glfwInit();
+
+	window = std::make_unique<Window>(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", 1, WIDTH, HEIGHT, false);
+	window->GetHandle();
+
+	/*glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); //<-- prevents glfw from creating an OpenGL context
 
 	window = glfwCreateWindow(
@@ -145,7 +150,7 @@ void HelloTriangleApplication::initWindow() {
 	);
 
 	glfwSetWindowUserPointer(window, this);
-	glfwSetWindowSizeCallback(window, onWindowResize);
+	glfwSetWindowSizeCallback(window, onWindowResize);*/
 }
 
 void HelloTriangleApplication::createVertexBuffer()
@@ -922,7 +927,7 @@ void HelloTriangleApplication::createSemaphores() {
  void HelloTriangleApplication::createSurface() {
 	 VkWin32SurfaceCreateInfoKHR surface_info = {};
 	 surface_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-	 surface_info.hwnd = glfwGetWin32Window(window);
+	 surface_info.hwnd = window->GetHandle();
 	 surface_info.hinstance = GetModuleHandle(nullptr);
 
 	 auto CreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(vkGetInstanceProcAddr(instance, "vkCreateWin32SurfaceKHR"));
@@ -1093,14 +1098,10 @@ void HelloTriangleApplication::createSemaphores() {
 
 std::vector<const char*> getRequiredExtensions()
 {
-	std::vector<const char*> extensions;
-
-	unsigned int glfwExtensionCount = 0;
-	auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-	for (unsigned int i = 0; i < glfwExtensionCount; i++) {
-		extensions.push_back(glfwExtensions[i]);
-	}
+	std::vector<const char*> extensions = {
+		VK_KHR_SURFACE_EXTENSION_NAME,
+		VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+	};
 
 	if (enableValidationLayers) {
 		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -1216,9 +1217,7 @@ std::vector<const char*> getRequiredExtensions()
 		return capabilities.currentExtent;
 	}
 
-	int width, height;
-	glfwGetWindowSize(window, &width, &height);
-	VkExtent2D actualExtent = { width, height };
+	VkExtent2D actualExtent = { window->width(), window->height() };
 	
 	actualExtent.width = std::max(
 		 capabilities.minImageExtent.width,
@@ -1256,13 +1255,23 @@ void HelloTriangleApplication::updateUniformBuffer()
 
 void HelloTriangleApplication::mainLoop() {
 
-	//standard event loop
-	while (!glfwWindowShouldClose(window)) {
-		glfwPollEvents();
-		updateUniformBuffer();
-		drawFrame();
-	}
+	while (true)
+	{
+		MSG message;
+		if (PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
+		{
+			if (message.message == WM_QUIT)
+				break;
 
+			TranslateMessage(&message);
+			DispatchMessage(&message);
+		}
+		else
+		{
+			updateUniformBuffer();
+			drawFrame();
+		}
+	}
 	vkDeviceWaitIdle(logicalDevice);
 }
 
@@ -1376,8 +1385,8 @@ void HelloTriangleApplication::cleanup() {
 	//clean stuff regarding instance before instance itself
 	vkDestroyInstance(instance, nullptr);
 
-	glfwDestroyWindow(window);
-	glfwTerminate();
+	//glfwDestroyWindow(window);
+	//glfwTerminate();
 
 }
 
@@ -1417,15 +1426,6 @@ void HelloTriangleApplication::cleanupSwapChain()
 	}
 
 	vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
-}
-
-void HelloTriangleApplication::onWindowResize(GLFWwindow* window, int width, int height)
-{
-	if (width == 0 || height == 0) return;
-
-	auto app = static_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-
-	app->recreateSwapChain();
 }
 
 uint32_t HelloTriangleApplication::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
