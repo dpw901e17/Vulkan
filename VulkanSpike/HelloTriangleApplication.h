@@ -13,6 +13,7 @@
 #include <memory>
 #include "../scene-window-system/Window.h"
 #include "../scene-window-system/Scene.h"
+#include "../scene-window-system/TestConfiguration.h"
 
 struct UniformBufferObject;
 class Scene;
@@ -73,6 +74,7 @@ private:
 	VkDeviceMemory m_DepthImageMemory;
 	VkImageView m_DepthImageView;
 	Scene m_Scene;
+	TestConfiguration m_testConfiguration;
 
 	static const std::vector<const char*> deviceExtensions;
 	static const std::vector<Vertex> vertices;

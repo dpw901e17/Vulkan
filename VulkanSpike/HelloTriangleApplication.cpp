@@ -1261,13 +1261,18 @@ void HelloTriangleApplication::mainLoop() {
 		{
 			UniformBufferObject ubo;
 			ubo.view = glm::mat4(1);//lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.proj = glm::perspective(glm::radians(m_Scene.camera().FieldOfView()), (float)window->width()/(float)window->height(), m_Scene.camera().Near(), m_Scene.camera().Far());
+			ubo.proj = glm::perspective(m_Scene.camera().FieldOfView(), (float)window->width()/(float)window->height(), m_Scene.camera().Near(), m_Scene.camera().Far());
 			ubo.proj[1][1] *= -1; // flip up and down
 			for(auto& render_object : m_Scene.renderObjects())
 			{
 				ubo.model = translate(glm::mat4(), { render_object.x(), render_object.y(), render_object.z() });
 				setUniformBuffer(ubo);
 			}
+			
+			if (! m_testConfiguration.reuseCommandBuffers) {
+				createCommandBuffers();
+			}
+
 			drawFrame();
 		}
 	}
