@@ -74,6 +74,9 @@ private:
 	VkImageView m_DepthImageView;
 	Scene m_Scene;
 
+	//pipeline statistics:
+	VkQueryPool queryPool;
+
 	static const std::vector<const char*> deviceExtensions;
 	static const std::vector<Vertex> vertices;
 	static const std::vector<uint16_t> indices;
@@ -102,6 +105,8 @@ private:
 	void createCommandBuffers();
 
 	void createCommandPool();
+
+	void createQueryPool(); //<-- for pipeline statistics
 
 	void createFramebuffers();
 

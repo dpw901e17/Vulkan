@@ -468,6 +468,7 @@ void HelloTriangleApplication::initVulkan() {
 	createUniformBuffer();
 	createDescriptorPool();
 	createDescriptorSet();
+	createQueryPool();
 	createCommandBuffers();
 	createSemaphores();
 }
@@ -541,6 +542,8 @@ void HelloTriangleApplication::createSemaphores() {
 		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBuffer, &offset);
 		vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
+		vkCmdBeginQuery(commandBuffers[i], queryPool, i, 0);
+
 		vkCmdDrawIndexed(
 			commandBuffers[i],
 			indices.size(),	
@@ -550,12 +553,15 @@ void HelloTriangleApplication::createSemaphores() {
 			0
 		);
 
+		vkCmdEndQuery(commandBuffers[i], queryPool, i);
+
 		//end recording
 		vkCmdEndRenderPass(commandBuffers[i]);
 
 		if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to record command buffer!");
 		}
+
 	}
 }
 
@@ -571,6 +577,36 @@ void HelloTriangleApplication::createSemaphores() {
 		throw std::runtime_error("failed to create command pool!");
 	}
 }
+
+ void HelloTriangleApplication::createQueryPool()
+ {
+	 VkQueryPoolCreateInfo queryInfo = {};
+	 queryInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+	 queryInfo.queryType = VkQueryType::VK_QUERY_TYPE_PIPELINE_STATISTICS;
+	 queryInfo.queryCount = swapChainFramebuffers.size();
+
+	 //the following needs to be these values according to the specification: https://www.khronos.org/registry/vulkan/specs/1.0/man/html/VkQueryPoolCreateInfo.html
+	 queryInfo.pNext = NULL;
+	 queryInfo.flags = 0;
+	 
+	 //TODO: be more selective with statistics queries?
+	 queryInfo.pipelineStatistics = VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT |
+		 VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT |
+		 VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT |
+		 VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT |
+		 VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT |
+		 VK_QUERY_PIPELINE_STATISTIC_CLIPPING_INVOCATIONS_BIT |
+		 VK_QUERY_PIPELINE_STATISTIC_CLIPPING_PRIMITIVES_BIT |
+		 VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT |
+		 VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_CONTROL_SHADER_PATCHES_BIT |
+		 VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT |
+		 VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT;
+
+
+	 if (vkCreateQueryPool(logicalDevice, &queryInfo, nullptr, &queryPool) != VK_SUCCESS) {
+		 throw std::runtime_error("failed to create query pool!");
+	 }
+ }
 
  void HelloTriangleApplication::createFramebuffers() {
 	swapChainFramebuffers.resize(swapChainImageViews.size());
@@ -961,8 +997,9 @@ void HelloTriangleApplication::createSemaphores() {
 
 	VkPhysicalDeviceFeatures deviceFeatures = {};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
+	deviceFeatures.pipelineStatisticsQuery = VK_TRUE;
 
-												  // Creating VkDeviceCreateInfo object
+	// Creating VkDeviceCreateInfo object
 	VkDeviceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
@@ -1271,6 +1308,8 @@ void HelloTriangleApplication::mainLoop() {
 			drawFrame();
 		}
 	}
+
+	//make sure resources are not being used by GPU before quitting
 	vkDeviceWaitIdle(logicalDevice);
 }
 
@@ -1351,6 +1390,26 @@ void HelloTriangleApplication::drawFrame() {
 	}
 
 	vkQueueWaitIdle(presentQueue);
+
+	//query pipeline statistics results:
+
+	//the count of VK_QUERY_PIPELINE_STATISTIC_* enums (see createQueryPool() );
+
+	PipelineStatisticsResult queryResult;
+	result = vkGetQueryPoolResults(
+		logicalDevice, 
+		queryPool, 
+		imageIndex, //<-- the query index in pool. We have one query per image (3buffer = 3 images)
+		1,	//<-- query count
+		sizeof(queryResult), //<-- data size
+		&queryResult,	//<-- output data
+		sizeof(uint64_t),	//<-- stride (types used in result
+		VK_QUERY_RESULT_WAIT_BIT || VK_QUERY_RESULT_64_BIT);	//<-- makes sure counters are in 64 bit.
+
+
+	if (result != VK_SUCCESS) {
+		throw std::runtime_error("could not get pipeline statistics query results");
+	}
 }
 
 void HelloTriangleApplication::cleanup() {
@@ -1378,6 +1437,8 @@ void HelloTriangleApplication::cleanup() {
 
 	vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 
+	vkDestroyQueryPool(logicalDevice, queryPool, nullptr);
+
 	vkDestroyDevice(logicalDevice, nullptr);
 	vkDestroySurfaceKHR(instance, m_Surface, nullptr);
 	DestroyDebugReportCallbackEXT(instance, callback, nullptr);
@@ -1401,6 +1462,7 @@ void HelloTriangleApplication::recreateSwapChain()
 	createGraphicsPipeline();
 	createDepthResources();
 	createFramebuffers();
+	createQueryPool();	//<-- TODO: not sure this is necessary..
 	createCommandBuffers();
 }
 

@@ -19,3 +19,19 @@ static std::vector<char> readFile(const std::string& filename) {
 
 	return buffer;
 }
+
+//TODO: move diz?
+struct PipelineStatisticsResult
+{
+	uint64_t inputAssemblyVertices, 
+		inputAssemblyPrimitives, 
+		vertexShaderInvocations, 
+		geometryShaderInvocations, 
+		geometryShaderPrimitives, 
+		clippingInvocations, 
+		clippingPrimitives, 
+		fragmentShaderInvocations, 
+		tesselationControlShaderPatches, 
+		tesselationEvaluationShaderInvocations, 
+		computeShaderInvocations;
+};
