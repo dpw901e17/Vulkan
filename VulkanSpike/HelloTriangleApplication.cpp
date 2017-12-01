@@ -125,15 +125,18 @@ const std::vector<uint16_t>HelloTriangleApplication::m_Indices = {
 	4 * 5 + 0, 4 * 5 + 1, 4 * 5 + 2, 4 * 5 + 2, 4 * 5 + 3, 4 * 5 + 0  // Bottom
 };
 
-HelloTriangleApplication::HelloTriangleApplication(Scene scene) : m_Scene(scene)
+HelloTriangleApplication::HelloTriangleApplication(Scene scene) 
+	: m_Window(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", 1, WIDTH, HEIGHT, false), 
+	  m_Scene(scene)
 {
+	m_Window.GetHandle(); // Actually intializes the window
 }
 
 // Crates a GLFW window (without OpenGL context)
 void HelloTriangleApplication::initWindow() {
 
-	m_Window = std::make_unique<Window>(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", 1, WIDTH, HEIGHT, false);
-	m_Window->GetHandle();
+	//m_Window = std::make_unique<Window>(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", 1, WIDTH, HEIGHT, false);
+	//m_Window->GetHandle();
 }
 
 void HelloTriangleApplication::createVertexBuffer()
@@ -884,7 +887,7 @@ void HelloTriangleApplication::createSemaphores() {
  void HelloTriangleApplication::createSurface() {
 	 VkWin32SurfaceCreateInfoKHR surface_info = {};
 	 surface_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-	 surface_info.hwnd = m_Window->GetHandle();
+	 surface_info.hwnd = m_Window.GetHandle();
 	 surface_info.hinstance = GetModuleHandle(nullptr);
 
 	 auto CreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(vkGetInstanceProcAddr(m_Instance, "vkCreateWin32SurfaceKHR"));
@@ -1174,7 +1177,7 @@ std::vector<const char*> getRequiredExtensions()
 		return capabilities.currentExtent;
 	}
 
-	VkExtent2D actualExtent = { m_Window->width(), m_Window->height() };
+	VkExtent2D actualExtent = { m_Window.width(), m_Window.height() };
 	
 	actualExtent.width = std::max(
 		 capabilities.minImageExtent.width,
@@ -1204,25 +1207,25 @@ void HelloTriangleApplication::mainLoop() {
 		}
 		else
 		{
-			auto view = lookAt(
+			// TODO: Maybe move this to onPaint?
+			m_UniformBufferObject.view = lookAt(
 				glm::vec3(2.0f, 2.0f, 2.0f), 
 				glm::vec3(0.0f, 0.0f, 0.0f),
 				glm::vec3(
 					m_Scene.renderObjects()[0].x(),
 					m_Scene.renderObjects()[0].y(), 
 					m_Scene.renderObjects()[0].z()));
-			auto proj = glm::perspective(
+			m_UniformBufferObject.projection = glm::perspective(
 				glm::radians(m_Scene.camera().FieldOfView()), 
-				static_cast<float>(m_Window->width())/static_cast<float>(m_Window->height()), 
+				static_cast<float>(m_Window.width())/static_cast<float>(m_Window.height()), 
 				m_Scene.camera().Near(), 
 				m_Scene.camera().Far());
-			proj[1][1] *= -1; // flip up and down
+			m_UniformBufferObject.projection[1][1] *= -1; // flip up and down
 			for(auto index = 0; index < m_Scene.renderObjects().size(); index++)
 			{
 				auto& render_object = m_Scene.renderObjects()[index];
-				auto mvp = reinterpret_cast<glm::mat4*>(reinterpret_cast<uint64_t>(m_InstanceUniformBufferObject.model) + (index + m_DynamicAllignment));
-				auto model = translate(glm::mat4(), { render_object.x(), render_object.y(), render_object.z() });
-				*mvp = proj * view * model;
+				auto model = reinterpret_cast<glm::mat4*>(reinterpret_cast<uint64_t>(m_InstanceUniformBufferObject.model) + (index + m_DynamicAllignment));
+				*model = translate(glm::mat4(), { render_object.x(), render_object.y(), render_object.z() });
 			}
 			VkMappedMemoryRange mappedMemoryRange{};
 			mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;

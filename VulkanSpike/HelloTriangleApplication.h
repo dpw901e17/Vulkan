@@ -47,7 +47,7 @@ private:
 		glm::mat4* model = nullptr;
 	} m_InstanceUniformBufferObject;
 
-	std::unique_ptr<Window> m_Window;
+	Window m_Window;
 	VkInstance m_Instance;
 	VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
 	VkDevice m_LogicalDevice; // Logical device. Called device in tut.
