@@ -18,5 +18,6 @@ int runVulkanTest() {
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
+	system("pause");
 	exit(EXIT_SUCCESS);
 }

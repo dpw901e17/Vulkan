@@ -13,8 +13,10 @@
 #include <memory>
 #include "../scene-window-system/Window.h"
 #include "../scene-window-system/Scene.h"
+#include <glm/glm.hpp>
 
-struct UniformBufferObject;
+#include "Buffer.h"
+
 class Scene;
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
@@ -34,49 +36,64 @@ public:
 	}
 
 private:
-	std::unique_ptr<Window> window;
-	VkInstance instance;
-	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	VkDevice logicalDevice; // Logical device. Called device in tut.
-	VkQueue graphicsQueue;
-	VkSurfaceKHR m_Surface;
-	VkQueue presentQueue;
-	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-	std::vector<VkImage> swapChainImages;
-	VkFormat swapChainImageFormat;
-	VkExtent2D swapChainExtent;
-	std::vector<VkImageView> swapChainImageViews;
-	VkRenderPass renderPass;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkPipelineLayout pipelineLayout;
-	VkPipeline graphicsPipeline;
-	std::vector<VkFramebuffer> swapChainFramebuffers;
-	VkCommandPool commandPool;
-	std::vector<VkCommandBuffer> commandBuffers;
-	VkSemaphore imageAvaliableSemaphore;
-	VkSemaphore renderFinishedSemaphore;
-	VkDebugReportCallbackEXT callback;
+	struct
+	{
+		glm::mat4 projection;
+		glm::mat4 view;
+	} m_UniformBufferObject;
 
-	VkBuffer vertexBuffer;
-	VkDeviceMemory vertexBufferMemory;
-	VkBuffer indexBuffer;
-	VkDeviceMemory indexBufferMemory;
-	VkBuffer uniformBuffer;
-	VkDeviceMemory uniformBufferMemory;
-	VkDescriptorPool descriptorPool;
-	VkDescriptorSet descriptorSet;
-	VkImage textureImage;
-	VkDeviceMemory textureImageMemory;
+	struct
+	{
+		glm::mat4* model = nullptr;
+	} m_InstanceUniformBufferObject;
+
+	std::unique_ptr<Window> m_Window;
+	VkInstance m_Instance;
+	VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
+	VkDevice m_LogicalDevice; // Logical device. Called device in tut.
+	VkQueue m_GraphicsQueue;
+	VkSurfaceKHR m_Surface;
+	VkQueue m_PresentQueue;
+
+	VkSwapchainKHR m_SwapChain = VK_NULL_HANDLE;
+	std::vector<VkImage> m_SwapChainImages;
+	VkFormat m_SwapChainImageFormat;
+	VkExtent2D m_SwapChainExtent;
+	std::vector<VkImageView> m_SwapChainImageViews;
+	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
+
+	VkRenderPass m_RenderPass;
+	VkDescriptorSetLayout m_DescriptorSetLayout;
+	VkPipelineLayout m_PipelineLayout;
+	VkPipeline m_GraphicsPipeline;
+
+	VkCommandPool m_CommandPool;
+	std::vector<VkCommandBuffer> m_CommandBuffers;
+
+	VkSemaphore m_ImageAvaliableSemaphore;
+	VkSemaphore m_RenderFinishedSemaphore;
+	VkDebugReportCallbackEXT m_Callback;
+
+	std::unique_ptr<Buffer> m_VertexBuffer;
+	std::unique_ptr<Buffer> m_IndexBuffer;
+	std::unique_ptr<Buffer> m_UniformBuffer;
+	std::unique_ptr<Buffer> m_DynamicUniformBuffer;
+
+	VkDescriptorPool m_DescriptorPool;
+	VkDescriptorSet m_DescriptorSet;
+	VkImage m_TextureImage;
+	VkDeviceMemory m_TextureImageMemory;
 	VkImageView m_TextureImageView;
 	VkSampler m_TextureSampler;
 	VkImage m_DepthImage;
 	VkDeviceMemory m_DepthImageMemory;
 	VkImageView m_DepthImageView;
 	Scene m_Scene;
+	uint32_t m_DynamicAllignment;
 
-	static const std::vector<const char*> deviceExtensions;
-	static const std::vector<Vertex> vertices;
-	static const std::vector<uint16_t> indices;
+	static const std::vector<const char*> m_DeviceExtensions;
+	static const std::vector<Vertex> m_Vertices;
+	static const std::vector<uint16_t> m_Indices;
 
 	// Crates a GLFW window (without OpenGL context)
 	void initWindow();
@@ -151,7 +168,6 @@ private:
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
 	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
 
-	void setUniformBuffer(const UniformBufferObject&);
 	// Handles (window) events
 	void mainLoop();
 
