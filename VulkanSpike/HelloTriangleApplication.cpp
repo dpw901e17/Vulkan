@@ -1215,15 +1215,20 @@ std::vector<const char*> getRequiredExtensions()
 	 return actualExtent;
 }
 
+glm::vec3 convertToGLM(const Vec4f& vec)
+{
+	return { vec.x, vec.y, vec.z };
+}
+
 void HelloTriangleApplication::updateUniformBuffer()
 {
 	m_UniformBufferObject.view = lookAt(
-		glm::vec3(2.0f, 2.0f, 2.0f),
-		glm::vec3(0.0f, 0.55f, -2.0f),
-		glm::vec3(0.0f, 1.0f, 0.0f));
+		convertToGLM(m_Scene.camera().Position()),
+		convertToGLM(m_Scene.camera().Target()),
+		convertToGLM(m_Scene.camera().Up()));
 	m_UniformBufferObject.projection = glm::perspective(
-		glm::radians(m_Scene.camera().FieldOfView()),
-		static_cast<float>(m_Window.width()) / static_cast<float>(m_Window.height()),
+		m_Scene.camera().FieldOfView(),
+		m_Window.aspectRatio(),
 		m_Scene.camera().Near(),
 		m_Scene.camera().Far());
 	m_UniformBufferObject.projection[1][1] *= -1; // flip up and down
