@@ -142,13 +142,21 @@ void HelloTriangleApplication::initWindow() {
 void HelloTriangleApplication::createVertexBuffer()
 {
 	auto buffer_size = sizeof(Vertex)*m_Vertices.size();
+	VkBufferCreateInfo buffer_create_info = {};
+	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_create_info.size = buffer_size;
+	buffer_create_info.flags = VK_SHARING_MODE_EXCLUSIVE;
+	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+	auto buffer = Buffer(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	
-	auto buffer = Buffer(m_PhysicalDevice, m_LogicalDevice, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	buffer.map();
 	memcpy(buffer.mappedMemory(), m_Vertices.data(), buffer_size);
 	buffer.unmap();
 
-	m_VertexBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+	m_VertexBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	copyBuffer(buffer.m_Buffer, m_VertexBuffer->m_Buffer, buffer_size);
 }
@@ -156,14 +164,21 @@ void HelloTriangleApplication::createVertexBuffer()
 void HelloTriangleApplication::createIndexBuffer()
 {
 	auto buffer_size = sizeof m_Indices[0]*m_Indices.size();
+	VkBufferCreateInfo buffer_create_info = {};
+	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_create_info.size = buffer_size;
+	buffer_create_info.flags = VK_SHARING_MODE_EXCLUSIVE;
+	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	auto buffer = Buffer(m_PhysicalDevice, m_LogicalDevice, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	auto buffer = Buffer(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 	buffer.map();
 	memcpy(buffer.mappedMemory(), m_Indices.data(), buffer_size);
 	buffer.unmap();
 
-	m_IndexBuffer =  std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+	m_IndexBuffer =  std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	copyBuffer(buffer.m_Buffer, m_IndexBuffer->m_Buffer, buffer_size);
 }
@@ -213,7 +228,12 @@ void HelloTriangleApplication::createUniformBuffer()
 	vkGetPhysicalDeviceProperties(m_PhysicalDevice, &properties);
 
 	auto buffer_size = sizeof(m_UniformBufferObject);
-	m_UniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	VkBufferCreateInfo buffer_create_info = {};
+	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_create_info.size = buffer_size;
+	buffer_create_info.flags = VK_SHARING_MODE_EXCLUSIVE;
+	buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	m_UniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 	auto allignment = properties.limits.minUniformBufferOffsetAlignment;
 	m_DynamicAllignment = sizeof(*m_InstanceUniformBufferObject.model);
@@ -225,7 +245,10 @@ void HelloTriangleApplication::createUniformBuffer()
 
 	buffer_size = 2 * m_DynamicAllignment; // HACK: Hardcoded value '2'
 	m_InstanceUniformBufferObject.model = static_cast<glm::mat4 *>(_aligned_malloc(buffer_size, m_DynamicAllignment));
-	m_DynamicUniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+	buffer_create_info.size = buffer_size;
+	buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	// Because no HOST_COHERENT flag we must flush the buffer when writing to it
+	m_DynamicUniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT); 
 	m_DynamicUniformBuffer->map();
 }
 
@@ -512,7 +535,7 @@ void HelloTriangleApplication::createSemaphores() {
 		renderPassInfo.renderArea.extent = m_SwapChainExtent;
 
 		std::array<VkClearValue, 2> clear_values = {};
-		clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+		clear_values[0].color = {0.2f, 0.3f, 0.8f, 1.0f};
 		clear_values[1].depthStencil = {1.0f, 0};
 
 		renderPassInfo.clearValueCount = clear_values.size();
@@ -1192,6 +1215,41 @@ std::vector<const char*> getRequiredExtensions()
 	 return actualExtent;
 }
 
+void HelloTriangleApplication::updateUniformBuffer()
+{
+	m_UniformBufferObject.view = lookAt(
+		glm::vec3(2.0f, 2.0f, 2.0f),
+		glm::vec3(0.0f, 0.55f, -2.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f));
+	m_UniformBufferObject.projection = glm::perspective(
+		glm::radians(m_Scene.camera().FieldOfView()),
+		static_cast<float>(m_Window.width()) / static_cast<float>(m_Window.height()),
+		m_Scene.camera().Near(),
+		m_Scene.camera().Far());
+	m_UniformBufferObject.projection[1][1] *= -1; // flip up and down
+
+	m_UniformBuffer->map();
+	memcpy(m_UniformBuffer->mappedMemory(), &m_UniformBufferObject, sizeof(m_UniformBufferObject));
+	m_UniformBuffer->unmap();
+}
+
+void HelloTriangleApplication::updateDynamicUniformBuffer() const
+{
+	for (auto index = 0; index < m_Scene.renderObjects().size(); index++)
+	{
+		auto& render_object = m_Scene.renderObjects()[index];
+		auto model = reinterpret_cast<glm::mat4*>(reinterpret_cast<uint64_t>(m_InstanceUniformBufferObject.model) + (index * m_DynamicAllignment));
+		*model = translate(glm::mat4(), { render_object.x(), render_object.y(), render_object.z() });
+	}
+	VkMappedMemoryRange mappedMemoryRange{};
+	mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+	mappedMemoryRange.memory = m_DynamicUniformBuffer->m_Memory;
+	mappedMemoryRange.size = m_DynamicAllignment * m_Scene.renderObjects().size();
+
+	memcpy(m_DynamicUniformBuffer->mappedMemory(), m_InstanceUniformBufferObject.model, m_DynamicAllignment * m_Scene.renderObjects().size());
+	vkFlushMappedMemoryRanges(m_LogicalDevice, 1, &mappedMemoryRange);
+}
+
 void HelloTriangleApplication::mainLoop() {
 
 	while (true)
@@ -1207,37 +1265,10 @@ void HelloTriangleApplication::mainLoop() {
 		}
 		else
 		{
-			// TODO: Maybe move this to onPaint?
-			m_UniformBufferObject.view = lookAt(
-				glm::vec3(2.0f, 2.0f, 2.0f), 
-				glm::vec3(0.0f, 0.0f, 0.0f),
-				glm::vec3(
-					m_Scene.renderObjects()[0].x(),
-					m_Scene.renderObjects()[0].y(), 
-					m_Scene.renderObjects()[0].z()));
-			m_UniformBufferObject.projection = glm::perspective(
-				glm::radians(m_Scene.camera().FieldOfView()), 
-				static_cast<float>(m_Window.width())/static_cast<float>(m_Window.height()), 
-				m_Scene.camera().Near(), 
-				m_Scene.camera().Far());
-			m_UniformBufferObject.projection[1][1] *= -1; // flip up and down
-			for(auto index = 0; index < m_Scene.renderObjects().size(); index++)
-			{
-				auto& render_object = m_Scene.renderObjects()[index];
-				auto model = reinterpret_cast<glm::mat4*>(reinterpret_cast<uint64_t>(m_InstanceUniformBufferObject.model) + (index + m_DynamicAllignment));
-				*model = translate(glm::mat4(), { render_object.x(), render_object.y(), render_object.z() });
-			}
-			VkMappedMemoryRange mappedMemoryRange{};
-			mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-			mappedMemoryRange.memory = m_DynamicUniformBuffer->m_Memory;
-			mappedMemoryRange.size = m_DynamicAllignment * m_Scene.renderObjects().size();
+			updateUniformBuffer();
 
-			memcpy(m_DynamicUniformBuffer->mappedMemory(), m_InstanceUniformBufferObject.model, m_DynamicAllignment * m_Scene.renderObjects().size());
-			vkFlushMappedMemoryRanges(m_LogicalDevice, 1, &mappedMemoryRange);
+			updateDynamicUniformBuffer();
 
-			m_UniformBuffer->map();
-			memcpy(m_UniformBuffer->mappedMemory(), &m_UniformBufferObject, sizeof(m_UniformBufferObject));
-			m_UniformBuffer->unmap();
 			drawFrame();
 		}
 	}

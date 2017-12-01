@@ -1,27 +1,9 @@
 #include "Buffer.h"
+#include "Utility.h"
 
-uint32_t findMemoryType(VkPhysicalDevice device, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+Buffer::Buffer(VkPhysicalDevice physicalDevice, VkDevice device, VkBufferCreateInfo buffer_info, VkMemoryPropertyFlags properties)
+	: m_Device(device), m_Size(buffer_info.size)
 {
-	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(device, &memProperties);
-
-	for (auto i = 0; i < memProperties.memoryTypeCount; i++) {
-		if (typeFilter & 1 << i && memProperties.memoryTypes[i].propertyFlags & properties) {
-			return i;
-		}
-	}
-
-	throw std::runtime_error("failed to find suitable memory type!");
-}
-
-Buffer::Buffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties): m_Device(device), m_Size(size)
-{
-	VkBufferCreateInfo buffer_info = {};
-	buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	buffer_info.size = size;
-	buffer_info.usage = usage;
-	buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
 	if (vkCreateBuffer(device, &buffer_info, nullptr, &m_Buffer) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create buffer!");

@@ -16,12 +16,21 @@
 #include <glm/glm.hpp>
 
 #include "Buffer.h"
+#include <iostream>
+#include <iomanip>
 
 class Scene;
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
 struct Vertex;
 
+
+inline std::ostream& operator<<(std::ostream& lhs, const glm::vec3& rhs)
+{
+	lhs << std::fixed 
+		<< "(" << rhs.x << ", " << rhs.y << ", " << rhs.z << ")";
+	return lhs;
+}
 
 class HelloTriangleApplication {
 public:
@@ -31,6 +40,19 @@ public:
 	void run() {
 		initWindow();
 		initVulkan();
+
+		updateUniformBuffer();
+		updateDynamicUniformBuffer();
+
+		glm::mat4 model_view = m_UniformBufferObject.view * m_InstanceUniformBufferObject.model[0];
+		glm::vec3 model_space = { 0.0f, 0.0f, 0.0f };
+		glm::vec3 world_space = model_view * glm::vec4(model_space, 1.0f);
+		glm::vec3 camera_space = m_UniformBufferObject.projection * model_view * glm::vec4(model_space, 1.0f);
+
+		std::cout << "Model space:  " << model_space << std::endl;
+		std::cout << "World space:  " << world_space << std::endl;
+		std::cout << "Camera space: " << camera_space << std::endl;
+
 		mainLoop();
 		cleanup();
 	}
@@ -95,7 +117,6 @@ private:
 	static const std::vector<Vertex> m_Vertices;
 	static const std::vector<uint16_t> m_Indices;
 
-	// Crates a GLFW window (without OpenGL context)
 	void initWindow();
 
 	void createVertexBuffer();
@@ -167,6 +188,8 @@ private:
 
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
 	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
+	void updateUniformBuffer();
+	void updateDynamicUniformBuffer() const;
 
 	// Handles (window) events
 	void mainLoop();

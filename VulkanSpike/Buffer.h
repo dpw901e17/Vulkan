@@ -4,7 +4,8 @@
 class Buffer
 {
 public:
-	Buffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+	//Buffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
+	Buffer(VkPhysicalDevice physicalDevice, VkDevice device, VkBufferCreateInfo buffer_info, VkMemoryPropertyFlags properties);
 	~Buffer();
 
 	VkResult map();
