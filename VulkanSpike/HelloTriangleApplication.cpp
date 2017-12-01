@@ -21,6 +21,7 @@
 #include "QueueFamilyIndices.h"
 #include "Vertex.h"
 #include "Shader.h"
+#include "Image.h"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -452,15 +453,23 @@ inline bool hasStencilComponent(VkFormat format)
 void HelloTriangleApplication::createDepthResources()
 {
 	auto depth_format = findDepthFormat();
-	createImage(
-		m_SwapChainExtent.width, m_SwapChainExtent.height, 
-		depth_format, 
-		VK_IMAGE_TILING_OPTIMAL, 
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-		m_DepthImage, m_DepthImageMemory);
-	m_DepthImageView = createImageView(m_DepthImage, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT);
-	transitionImageLayout(m_DepthImage, depth_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+	VkImageCreateInfo imageCreateInfo = {};
+	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageCreateInfo.extent.width = static_cast<uint32_t>(m_SwapChainExtent.width);
+	imageCreateInfo.extent.height = static_cast<uint32_t>(m_SwapChainExtent.height);
+	imageCreateInfo.extent.depth = 1;
+	imageCreateInfo.mipLevels = 1;
+	imageCreateInfo.arrayLayers = 1;
+	imageCreateInfo.format = depth_format;
+	imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+	m_DepthImage = std::make_unique<Image>(m_LogicalDevice, m_PhysicalDevice, imageCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+	transitionImageLayout(m_DepthImage->m_Image, m_DepthImage->m_Format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
 // Initializes Vulkan
@@ -601,7 +610,7 @@ void HelloTriangleApplication::createSemaphores() {
 	for (size_t i = 0; i < m_SwapChainImageViews.size(); i++) {
 		std::array<VkImageView, 2> attachments = {
 			m_SwapChainImageViews[i],
-			m_DepthImageView
+			m_DepthImage->m_ImageView
 		};
 
 		VkFramebufferCreateInfo framebufferInfo = {};
@@ -1405,9 +1414,6 @@ void HelloTriangleApplication::recreateSwapChain()
 
 void HelloTriangleApplication::cleanupSwapChain()
 {
-	vkDestroyImageView(m_LogicalDevice, m_DepthImageView, nullptr);
-	vkDestroyImage(m_LogicalDevice, m_DepthImage, nullptr);
-	vkFreeMemory(m_LogicalDevice, m_DepthImageMemory, nullptr);
 	vkDeviceWaitIdle(m_LogicalDevice);
 	for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++) {
 		vkDestroyFramebuffer(m_LogicalDevice, m_SwapChainFramebuffers[i], nullptr);

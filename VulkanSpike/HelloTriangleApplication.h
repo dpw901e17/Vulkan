@@ -18,6 +18,7 @@
 #include "Buffer.h"
 #include <iostream>
 #include <iomanip>
+#include "Image.h"
 
 class Scene;
 struct QueueFamilyIndices;
@@ -101,15 +102,15 @@ private:
 	std::unique_ptr<Buffer> m_UniformBuffer;
 	std::unique_ptr<Buffer> m_DynamicUniformBuffer;
 
+	vk::Image i;
+
 	VkDescriptorPool m_DescriptorPool;
 	VkDescriptorSet m_DescriptorSet;
 	VkImage m_TextureImage;
 	VkDeviceMemory m_TextureImageMemory;
 	VkImageView m_TextureImageView;
 	VkSampler m_TextureSampler;
-	VkImage m_DepthImage;
-	VkDeviceMemory m_DepthImageMemory;
-	VkImageView m_DepthImageView;
+	std::unique_ptr<Image> m_DepthImage;
 	Scene m_Scene;
 	uint32_t m_DynamicAllignment;
 
