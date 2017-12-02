@@ -133,13 +133,6 @@ HelloTriangleApplication::HelloTriangleApplication(Scene scene)
 	m_Window.GetHandle(); // Actually intializes the window
 }
 
-// Crates a GLFW window (without OpenGL context)
-void HelloTriangleApplication::initWindow() {
-
-	//m_Window = std::make_unique<Window>(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", 1, WIDTH, HEIGHT, false);
-	//m_Window->GetHandle();
-}
-
 void HelloTriangleApplication::createVertexBuffer()
 {
 	auto buffer_size = sizeof(Vertex)*m_Vertices.size();
@@ -391,10 +384,6 @@ VkImageView HelloTriangleApplication::createImageView(VkImage image, VkFormat fo
 	return image_view;
 }
 
-void HelloTriangleApplication::createTextureImageView()
-{
-}
-
 void HelloTriangleApplication::createTextureSampler()
 {
 	VkSamplerCreateInfo sampler_create_info = {};
@@ -487,7 +476,6 @@ void HelloTriangleApplication::initVulkan() {
 	createDepthResources();
 	createFramebuffers();
 	createTextureImage();
-	createTextureImageView();
 	createTextureSampler();
 	createVertexBuffer();
 	createIndexBuffer();
@@ -1427,48 +1415,6 @@ void HelloTriangleApplication::cleanupSwapChain()
 	vkDestroySwapchainKHR(m_LogicalDevice, m_SwapChain, nullptr);
 }
 
-uint32_t HelloTriangleApplication::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
-{
-	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProperties);
-
-	for (auto i = 0; i < memProperties.memoryTypeCount; i++) {
-		if (typeFilter & 1 << i && memProperties.memoryTypes[i].propertyFlags & properties) {
-			return i;
-		}
-	}
-
-	throw std::runtime_error("failed to find suitable memory type!");
-}
-
-void HelloTriangleApplication::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
-{
-	VkBufferCreateInfo buffer_info = {};
-	buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	buffer_info.size = size;
-	buffer_info.usage = usage;
-	buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	if (vkCreateBuffer(m_LogicalDevice, &buffer_info, nullptr, &buffer) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create buffer!");
-	}
-
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(m_LogicalDevice, buffer, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-	if (vkAllocateMemory(m_LogicalDevice, &allocInfo, nullptr, &bufferMemory))
-	{
-		throw std::runtime_error("Failed to allocate vertex buffer memory!");
-	}
-
-	vkBindBufferMemory(m_LogicalDevice, buffer, bufferMemory, 0);
-}
-
 // TODO: Flyt denne metode ind i buffer klassen
 void HelloTriangleApplication::copyBuffer(VkBuffer source, VkBuffer destination, VkDeviceSize size)
 {
@@ -1524,44 +1470,6 @@ void HelloTriangleApplication::createTextureImage()
 
 	//prepare to use image in shader:
 	transitionImageLayout(m_TextureImage->m_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-}
-
-void HelloTriangleApplication::createImage(uint32_t texWidth, uint32_t texHeight, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage & image, VkDeviceMemory & imageMemory)
-{
-	VkImageCreateInfo imageCreateInfo = {};
-	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageCreateInfo.extent.width = static_cast<uint32_t>(texWidth);
-	imageCreateInfo.extent.height = static_cast<uint32_t>(texHeight);
-	imageCreateInfo.extent.depth = 1;
-	imageCreateInfo.mipLevels = 1;
-	imageCreateInfo.arrayLayers = 1;
-	imageCreateInfo.format = format;
-	imageCreateInfo.tiling = tiling;
-	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageCreateInfo.usage = usage;
-	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	imageCreateInfo.flags = 0;	//optional
-
-	if (vkCreateImage(m_LogicalDevice, &imageCreateInfo, nullptr, &image) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create image!");
-	}
-
-	//copy to buffer
-	VkMemoryRequirements memRequirements;
-	vkGetImageMemoryRequirements(m_LogicalDevice, image, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-	if (vkAllocateMemory(m_LogicalDevice, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
-		throw std::runtime_error("failed to allocate image memory!");
-	}
-
-	vkBindImageMemory(m_LogicalDevice, image, imageMemory, 0);
 }
 
 VkCommandBuffer HelloTriangleApplication::beginSingleTimeCommands()

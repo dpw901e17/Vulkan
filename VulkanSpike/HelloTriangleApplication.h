@@ -39,7 +39,6 @@ public:
 
 	// Does everything!
 	void run() {
-		initWindow();
 		initVulkan();
 
 		updateUniformBuffer();
@@ -114,8 +113,6 @@ private:
 	static const std::vector<Vertex> m_Vertices;
 	static const std::vector<uint16_t> m_Indices;
 
-	void initWindow();
-
 	void createVertexBuffer();
 	void createIndexBuffer();
 	void createDescriptorSetLayout();
@@ -124,7 +121,6 @@ private:
 	void createDescriptorPool();
 	void createDescriptorSet();
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT) const;
-	void createTextureImageView();
 	void createTextureSampler();
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 	VkFormat findDepthFormat() const;
@@ -143,8 +139,6 @@ private:
 	void createRenderPass();
 
 	void createGraphicsPipeline();
-
-	VkShaderModule createShaderModule(const std::vector<char>& code) const;
 
 	void createImageViews();
 
@@ -200,14 +194,9 @@ private:
 
 	void cleanupSwapChain();
 
-	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
-
-	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
 	void copyBuffer(VkBuffer source, VkBuffer destination, VkDeviceSize);
 
 	void createTextureImage();
-
-	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
