@@ -1368,9 +1368,9 @@ void HelloTriangleApplication::drawFrame() {
 }
 
 void HelloTriangleApplication::cleanup() {
-	this->~HelloTriangleApplication(); // HACK: Ensures that the buffers are destroyed before the vulkan instance
-
 	cleanupSwapChain();
+
+	this->~HelloTriangleApplication(); // HACK: Ensures that the buffers are destroyed before the vulkan instance
 
 	_aligned_free(m_InstanceUniformBufferObject.model);
 
