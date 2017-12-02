@@ -244,7 +244,7 @@ void HelloTriangleApplication::createUniformBuffer()
 		m_DynamicAllignment = (m_DynamicAllignment + allignment - 1) & ~(allignment - 1);
 	}
 
-	buffer_size = 2 * m_DynamicAllignment; // HACK: Hardcoded value '2'
+	buffer_size = m_Scene.renderObjects().size() * m_DynamicAllignment;
 	m_InstanceUniformBufferObject.model = static_cast<glm::mat4 *>(_aligned_malloc(buffer_size, m_DynamicAllignment));
 	buffer_create_info.size = buffer_size;
 	buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -332,7 +332,7 @@ void HelloTriangleApplication::createDescriptorSet()
 
 	VkDescriptorImageInfo image_info;
 	image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	image_info.imageView = m_TextureImageView;
+	image_info.imageView = m_TextureImage->m_ImageView;
 	image_info.sampler = m_TextureSampler;
 
 	std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
@@ -393,7 +393,6 @@ VkImageView HelloTriangleApplication::createImageView(VkImage image, VkFormat fo
 
 void HelloTriangleApplication::createTextureImageView()
 {
-	m_TextureImageView = createImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_UNORM);
 }
 
 void HelloTriangleApplication::createTextureSampler()
@@ -568,7 +567,7 @@ void HelloTriangleApplication::createSemaphores() {
 		vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, &m_VertexBuffer->m_Buffer, &offset);
 		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_IndexBuffer->m_Buffer, 0, VK_INDEX_TYPE_UINT16);
 
-		for (int j = 0; j < 2; j++) {
+		for (int j = 0; j < m_Scene.renderObjects().size(); j++) {
 			uint32_t dynamic_offset = j * m_DynamicAllignment;
 			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSet, 1, &dynamic_offset);
 
@@ -1376,10 +1375,6 @@ void HelloTriangleApplication::cleanup() {
 	_aligned_free(m_InstanceUniformBufferObject.model);
 
 	vkDestroySampler(m_LogicalDevice, m_TextureSampler, nullptr);
-	vkDestroyImageView(m_LogicalDevice, m_TextureImageView, nullptr);
-
-	vkDestroyImage(m_LogicalDevice, m_TextureImage, nullptr);
-	vkFreeMemory(m_LogicalDevice, m_TextureImageMemory, nullptr);
 
 	vkDestroyDescriptorPool(m_LogicalDevice, m_DescriptorPool, nullptr);
 
@@ -1498,30 +1493,37 @@ void HelloTriangleApplication::createTextureImage()
 	}
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
 
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufferMemory;
+	VkBufferCreateInfo buffer_create_info = {};
+	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_create_info.size = imageSize;
+	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+	Buffer buffer(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-	void* data;
-
-	vkMapMemory(m_LogicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
-	memcpy(data, pixels, static_cast<size_t>(imageSize));
-	vkUnmapMemory(m_LogicalDevice, stagingBufferMemory);
+	buffer.map();
+	memcpy(buffer.mappedMemory(), pixels, static_cast<size_t>(imageSize));
+	buffer.unmap();
 
 	stbi_image_free(pixels);
 
-	createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_TextureImage, m_TextureImageMemory);
-	transitionImageLayout(m_TextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	copyBufferToImage(stagingBuffer, m_TextureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+	VkImageCreateInfo imageCreateInfo = {};
+	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageCreateInfo.extent.width = texWidth;
+	imageCreateInfo.extent.height = texHeight;
+	imageCreateInfo.extent.depth = 1;
+	imageCreateInfo.mipLevels = 1;
+	imageCreateInfo.arrayLayers = 1;
+	imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	m_TextureImage = std::make_unique<Image>(m_LogicalDevice, m_PhysicalDevice, imageCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+	transitionImageLayout(m_TextureImage->m_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	copyBufferToImage(buffer.m_Buffer, m_TextureImage->m_Image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
 	//prepare to use image in shader:
-	transitionImageLayout(m_TextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-
-	//cleanup
-	vkDestroyBuffer(m_LogicalDevice, stagingBuffer, nullptr);
-	vkFreeMemory(m_LogicalDevice, stagingBufferMemory, nullptr);
+	transitionImageLayout(m_TextureImage->m_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void HelloTriangleApplication::createImage(uint32_t texWidth, uint32_t texHeight, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage & image, VkDeviceMemory & imageMemory)

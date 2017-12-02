@@ -11,6 +11,8 @@ int runVulkanTest() {
 	{ 
 		RenderObject(0.0f, 0.0f, 0.0f),
 		RenderObject(1.2f, 0.0f, 1.2f),
+		RenderObject(1.2f, 0.0f, 0.0f),
+		RenderObject(0.0f, 0.0f, 1.2f),
 	});
 	HelloTriangleApplication app(scene);
 

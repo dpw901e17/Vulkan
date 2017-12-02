@@ -102,13 +102,9 @@ private:
 	std::unique_ptr<Buffer> m_UniformBuffer;
 	std::unique_ptr<Buffer> m_DynamicUniformBuffer;
 
-	vk::Image i;
-
 	VkDescriptorPool m_DescriptorPool;
 	VkDescriptorSet m_DescriptorSet;
-	VkImage m_TextureImage;
-	VkDeviceMemory m_TextureImageMemory;
-	VkImageView m_TextureImageView;
+	std::unique_ptr<Image> m_TextureImage;
 	VkSampler m_TextureSampler;
 	std::unique_ptr<Image> m_DepthImage;
 	Scene m_Scene;
