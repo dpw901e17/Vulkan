@@ -13,11 +13,11 @@
 #include <memory>
 #include "../scene-window-system/Window.h"
 #include "../scene-window-system/Scene.h"
+#include "../scene-window-system/TestConfiguration.h"
 #include <glm/glm.hpp>
 
 #include "Buffer.h"
 #include <iostream>
-#include <iomanip>
 #include "Image.h"
 
 class Scene;
@@ -109,6 +109,7 @@ private:
 	Scene m_Scene;
 	uint32_t m_DynamicAllignment;
 	vk::QueryPool m_QueryPool;
+	TestConfiguration m_testConfiguration;
 
 	static const std::vector<const char*> s_DeviceExtensions;
 	static const std::vector<Vertex> s_Vertices;
