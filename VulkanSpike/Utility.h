@@ -35,13 +35,12 @@ static std::vector<char> readFile(const std::string& filename) {
 	return buffer;
 }
 
-static uint32_t findMemoryType(VkPhysicalDevice device, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+static uint32_t findMemoryType(vk::PhysicalDevice device, uint32_t typeFilter, vk::MemoryPropertyFlags properties)
 {
-	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(device, &memProperties);
+	auto memProperties = device.getMemoryProperties();
 
 	for (auto i = 0; i < memProperties.memoryTypeCount; i++) {
-		if (typeFilter & 1 << i && memProperties.memoryTypes[i].propertyFlags & properties) {
+		if ((typeFilter & (1 << i)) && memProperties.memoryTypes[i].propertyFlags & properties) {
 			return i;
 		}
 	}

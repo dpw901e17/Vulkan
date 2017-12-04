@@ -71,7 +71,7 @@ private:
 
 	Window m_Window;
 	VkInstance m_Instance;
-	VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
+	vk::PhysicalDevice m_PhysicalDevice;
 	vk::Device m_LogicalDevice;
 	VkQueue m_GraphicsQueue;
 	VkSurfaceKHR m_Surface;
@@ -81,8 +81,8 @@ private:
 	std::vector<VkImage> m_SwapChainImages;
 	VkFormat m_SwapChainImageFormat;
 	VkExtent2D m_SwapChainExtent;
-	std::vector<VkImageView> m_SwapChainImageViews;
-	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
+	std::vector<vk::ImageView> m_SwapChainImageViews;
+	std::vector<vk::Framebuffer> m_SwapChainFramebuffers;
 
 	VkRenderPass m_RenderPass;
 	VkDescriptorSetLayout m_DescriptorSetLayout;
@@ -124,8 +124,8 @@ private:
 	void createDescriptorSet();
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT) const;
 	void createTextureSampler();
-	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
-	VkFormat findDepthFormat() const;
+	vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) const;
+	vk::Format findDepthFormat() const;
 	void createDepthResources();
 	void createQueryPool();
 	// Initializes Vulkan
@@ -160,25 +160,25 @@ private:
 	void pickPhysicalDevice();
 
 	// Finds and returns Queue-families to fill the struct QueueFamilyIndices.
-	QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device) const;
+	QueueFamilyIndices findQueueFamilies(const vk::PhysicalDevice& device) const;
 
 	// Determines if the given physical device supports both Queue-families and "deviceExtensions"
-	bool isDeviceSuitable(const VkPhysicalDevice& device) const;
+	bool isDeviceSuitable(const vk::PhysicalDevice& device) const;
 
 	// Determines if the physical device supports all extensions in "deviceExtensions"
-	static bool checkDeviceExtensionSupport(const VkPhysicalDevice& device);
+	static bool checkDeviceExtensionSupport(const vk::PhysicalDevice& device);
 
 	// Initializes Vulkan "instance" (think OpenGL context) + loads glfw extensions
 	void createInstance();
 
 	// Queries for the capabilities of the physical device, surface format, and present mode
-	SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice& device) const;
+	SwapChainSupportDetails querySwapChainSupport(const vk::PhysicalDevice& device) const;
 
 	// Finds and returns the optimal format (colour space + colour format).
-	static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+	static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
 
 	// Finds and returns the optimal present mode (i.e. how we write to swapchain).
-	static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+	static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
 
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
 	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;

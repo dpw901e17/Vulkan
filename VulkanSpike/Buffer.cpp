@@ -9,7 +9,7 @@ Buffer::Buffer(vk::PhysicalDevice physicalDevice, vk::Device device, vk::BufferC
 	vk::MemoryAllocateInfo allocInfo = {};
 	allocInfo
 		.setAllocationSize(memRequirements.size)
-		.setMemoryTypeIndex(findMemoryType(static_cast<VkPhysicalDevice>(physicalDevice), memRequirements.memoryTypeBits, static_cast<VkMemoryPropertyFlags>(properties)));
+		.setMemoryTypeIndex(findMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties));
 
 	m_Memory = device.allocateMemory(allocInfo);
 

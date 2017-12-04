@@ -5,54 +5,50 @@
 class Image
 {
 public:
-	Image(VkDevice device, VkPhysicalDevice physical_device, VkImageCreateInfo imageCreateInfo, VkMemoryPropertyFlags properties, VkImageAspectFlagBits aspect_flags)
-		: m_Device(device), m_Format(imageCreateInfo.format)
+	Image(vk::Device device, vk::PhysicalDevice physical_device, const vk::ImageCreateInfo& imageCreateInfo, vk::MemoryPropertyFlags properties, vk::ImageAspectFlagBits aspect_flags)
+		: m_Format(imageCreateInfo.format), m_Device(device)
 	{
-		if (vkCreateImage(device, &imageCreateInfo, nullptr, &m_Image) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create image!");
-		}
+		m_Image = device.createImage(imageCreateInfo);
 
 		//copy to buffer
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, m_Image, &memRequirements);
+		VkMemoryRequirements memRequirements = device.getImageMemoryRequirements(m_Image);
 
-		VkMemoryAllocateInfo allocInfo = {};
-		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		vk::MemoryAllocateInfo allocInfo = {};
 		allocInfo.allocationSize = memRequirements.size;
 		allocInfo.memoryTypeIndex = findMemoryType(physical_device, memRequirements.memoryTypeBits, properties);
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &m_Memory) != VK_SUCCESS) {
-			throw std::runtime_error("failed to allocate image memory!");
-		}
+		
+		m_Memory = device.allocateMemory(allocInfo);
 
-		vkBindImageMemory(device, m_Image, m_Memory, 0);
+		device.bindImageMemory(m_Image, m_Memory, 0);
 
-		VkImageViewCreateInfo view_info = {};
-		view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		view_info.image = m_Image;
-		view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		view_info.format = m_Format;
-		view_info.subresourceRange.aspectMask = aspect_flags;
-		view_info.subresourceRange.levelCount = 1;
-		view_info.subresourceRange.layerCount = 1;
+		vk::ImageSubresourceRange subresourceRange;
+		subresourceRange.setAspectMask(aspect_flags)
+			.setLevelCount(1)
+			.setLayerCount(1);
 
-		if (vkCreateImageView(device, &view_info, nullptr, &m_ImageView) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create image view!");
-		}
+		vk::ImageViewCreateInfo view_info;
+		view_info.setImage(m_Image)
+			.setViewType(vk::ImageViewType::e2D)
+			.setFormat(m_Format)
+			.setSubresourceRange(subresourceRange);
+
+		m_ImageView = device.createImageView(view_info);
 	}
 
 	~Image()
     {
-		vkDestroyImageView(m_Device, m_ImageView, nullptr);
-		vkDestroyImage(m_Device, m_Image, nullptr);
-		vkFreeMemory(m_Device, m_Memory, nullptr);
+
+		m_Device.destroyImageView(m_ImageView);
+		m_Device.destroyImage(m_Image);
+		m_Device.freeMemory(m_Memory);
     }
 
 
-	VkImage m_Image;
-	VkDeviceMemory m_Memory;
-	VkImageView m_ImageView;
-	VkFormat m_Format;
+	vk::Image m_Image;
+	vk::DeviceMemory m_Memory;
+	vk::ImageView m_ImageView;
+	vk::Format m_Format;
 private:
-	VkDevice m_Device;
+	vk::Device m_Device;
 };
