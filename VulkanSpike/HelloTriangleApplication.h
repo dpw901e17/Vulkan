@@ -38,24 +38,7 @@ public:
 	explicit HelloTriangleApplication(Scene scene);
 
 	// Does everything!
-	void run() {
-		initVulkan();
-
-		updateUniformBuffer();
-		updateDynamicUniformBuffer();
-
-		glm::mat4 model_view = m_UniformBufferObject.view * m_InstanceUniformBufferObject.model[0];
-		glm::vec3 model_space = { 0.0f, 0.0f, 0.0f };
-		glm::vec3 world_space = model_view * glm::vec4(model_space, 1.0f);
-		glm::vec3 camera_space = m_UniformBufferObject.projection * model_view * glm::vec4(model_space, 1.0f);
-
-		std::cout << "Model space:  " << model_space << std::endl;
-		std::cout << "World space:  " << world_space << std::endl;
-		std::cout << "Camera space: " << camera_space << std::endl;
-
-		mainLoop();
-		cleanup();
-	}
+	void run();
 
 private:
 	struct
@@ -70,12 +53,12 @@ private:
 	} m_InstanceUniformBufferObject;
 
 	Window m_Window;
-	VkInstance m_Instance;
+	vk::Instance m_Instance;
 	vk::PhysicalDevice m_PhysicalDevice;
 	vk::Device m_LogicalDevice;
-	VkQueue m_GraphicsQueue;
+	vk::Queue m_GraphicsQueue;
 	VkSurfaceKHR m_Surface;
-	VkQueue m_PresentQueue;
+	vk::Queue m_PresentQueue;
 
 	VkSwapchainKHR m_SwapChain = VK_NULL_HANDLE;
 	std::vector<VkImage> m_SwapChainImages;

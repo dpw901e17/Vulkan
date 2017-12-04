@@ -40,6 +40,7 @@ const bool enableValidationLayers = true;
 
 VkResult CreateDebugReportCallbackEXT(VkInstance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugReportCallbackEXT* pCallback) {
 	static auto func = GET_INSTANCE_PROC(vkCreateDebugReportCallbackEXT);
+
 	if (func != nullptr) {
 		return func(instance, pCreateInfo, pAllocator, pCallback);
 	}
@@ -48,7 +49,7 @@ VkResult CreateDebugReportCallbackEXT(VkInstance instance, const VkDebugReportCa
 	}
 }
 
-void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator) {
+void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator = nullptr) {
 	static auto func = GET_INSTANCE_PROC(vkDestroyDebugReportCallbackEXT);
 	if (func != nullptr) {
 		func(instance, callback, pAllocator);
@@ -131,6 +132,26 @@ HelloTriangleApplication::HelloTriangleApplication(Scene scene)
 	  m_Scene(scene)
 {
 	m_Window.GetHandle(); // Actually intializes the window
+}
+
+void HelloTriangleApplication::run()
+{
+	initVulkan();
+
+	updateUniformBuffer();
+	updateDynamicUniformBuffer();
+
+	glm::mat4 model_view = m_UniformBufferObject.view * m_InstanceUniformBufferObject.model[0];
+	glm::vec3 model_space = {0.0f, 0.0f, 0.0f};
+	glm::vec3 world_space = model_view * glm::vec4(model_space, 1.0f);
+	glm::vec3 camera_space = m_UniformBufferObject.projection * model_view * glm::vec4(model_space, 1.0f);
+
+	std::cout << "Model space:  " << model_space << std::endl;
+	std::cout << "World space:  " << world_space << std::endl;
+	std::cout << "Camera space: " << camera_space << std::endl;
+
+	mainLoop();
+	cleanup();
 }
 
 void HelloTriangleApplication::createVertexBuffer()
@@ -267,7 +288,9 @@ void HelloTriangleApplication::setupDebugCallback()
 	createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
 	createInfo.pfnCallback = debugCallback;
 
-	if (CreateDebugReportCallbackEXT(m_Instance, &createInfo, nullptr, &m_Callback) != VK_SUCCESS) {
+	auto result = CreateDebugReportCallbackEXT(static_cast<VkInstance>(m_Instance), &createInfo, nullptr, &m_Callback);
+	if (result != VK_SUCCESS)
+	{
 		throw std::runtime_error("Failed to set up debug callback!");
 	}
 }
@@ -928,9 +951,9 @@ void HelloTriangleApplication::createSemaphores() {
 	 surface_info.hwnd = m_Window.GetHandle();
 	 surface_info.hinstance = GetModuleHandle(nullptr);
 
-	 auto CreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(vkGetInstanceProcAddr(m_Instance, "vkCreateWin32SurfaceKHR"));
+	 auto CreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(m_Instance.getProcAddr("vkCreateWin32SurfaceKHR"));
 
-	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(m_Instance, &surface_info, nullptr, &m_Surface) != VK_SUCCESS) {
+	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(static_cast<VkInstance>(m_Instance), &surface_info, nullptr, &m_Surface) != VK_SUCCESS) {
 		 throw std::runtime_error("failed to create window surface!");
 	 }
 }
@@ -974,45 +997,16 @@ void HelloTriangleApplication::createSemaphores() {
 	m_LogicalDevice = m_PhysicalDevice.createDevice(createInfo);
 
 	// Get handle to queue in the logicalDevice
-	vkGetDeviceQueue(
-		static_cast<VkDevice>(m_LogicalDevice), //<-- handle for device 
-		indices.graphicsFamily, //<-- family of queues to access
-		0, //<-- index of specific queue
-		&m_GraphicsQueue //<-- handle output 
-	);
-
-	vkGetDeviceQueue(static_cast<VkDevice>(m_LogicalDevice), indices.presentFamily, 0, &m_PresentQueue);
-
+	m_GraphicsQueue = m_LogicalDevice.getQueue(indices.graphicsFamily, 0);
+	m_PresentQueue = m_LogicalDevice.getQueue(indices.presentFamily, 0);
 }
 
- void HelloTriangleApplication::pickPhysicalDevice() {
-	uint32_t deviceCount = 0;
-
-	vkEnumeratePhysicalDevices(
-		m_Instance,
-		&deviceCount,	//<-- output 
-		nullptr	//<-- output
-	);
-
-	if (deviceCount == 0) {
-		throw std::runtime_error("failed to find GPUs with Vulkan support!");
-	}
-
-	//TODO: dont hack the instance.
-	std::vector<vk::PhysicalDevice> devices = vk::Instance(m_Instance).enumeratePhysicalDevices();
-	
-
-	int i = 0;
-	bool physicalDeviceFound = false;
-	while (i < deviceCount && !physicalDeviceFound) {
-		auto& device = devices.at(i);
-		physicalDeviceFound = isDeviceSuitable(device);
-
-		if (physicalDeviceFound) {
+ void HelloTriangleApplication::pickPhysicalDevice() {	
+	for (auto& device : m_Instance.enumeratePhysicalDevices()) {
+		if(isDeviceSuitable(device)){
 			m_PhysicalDevice = device;
+			break;
 		}
-
-		i++;
 	}
 
 	if (!m_PhysicalDevice) {
@@ -1130,14 +1124,7 @@ std::vector<const char*> getRequiredExtensions()
 		createInfo.enabledLayerCount = 0;
 	}
 
-	 auto result = vkCreateInstance(
-		&createInfo,	//<-- info filled in above
-		nullptr,		//<-- callback for custom allocation
-		&m_Instance);		//<-- handle to created instance
-
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create instance.");
-	}
+	m_Instance = vk::createInstance(createInfo);
 }
 
  SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(const vk::PhysicalDevice& device) const
@@ -1314,9 +1301,7 @@ void HelloTriangleApplication::drawFrame() {
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	if (vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-		throw std::runtime_error("failed to submit draw command buffer!");
-	}
+	m_GraphicsQueue.submit({ submitInfo }, vk::Fence());
 
 	// Present the image presented
 	VkPresentInfoKHR presentInfo = {};
@@ -1331,20 +1316,8 @@ void HelloTriangleApplication::drawFrame() {
 
 	presentInfo.pResults = nullptr; // Would contain VK result for all images if more than 1
 
-	result = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
-
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
-	{
-		recreateSwapChain();
-		return;
-	}
-
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error("Failed to acquire swap chain image!");
-	}
-
-	vkQueueWaitIdle(m_PresentQueue);
+	m_PresentQueue.presentKHR(presentInfo);
+	m_PresentQueue.waitIdle();
 
 	PipelineStatisticsResult queryResults;
 
@@ -1381,11 +1354,11 @@ void HelloTriangleApplication::cleanup() {
 
 	m_LogicalDevice.destroyQueryPool(m_QueryPool);
 
-	vkDestroyDevice(static_cast<VkDevice>(m_LogicalDevice), nullptr);
-	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
-	DestroyDebugReportCallbackEXT(m_Instance, m_Callback, nullptr);
+	m_LogicalDevice.destroy();
+	m_Instance.destroySurfaceKHR(vk::SurfaceKHR(m_Surface));
+	DestroyDebugReportCallbackEXT(static_cast<VkInstance>(m_Instance), m_Callback);
 	//clean stuff regarding instance before instance itself
-	vkDestroyInstance(m_Instance, nullptr);
+	m_Instance.destroy();
 }
 
 void HelloTriangleApplication::recreateSwapChain()
@@ -1508,8 +1481,8 @@ void HelloTriangleApplication::endSingleTimeCommands(VkCommandBuffer commandBuff
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 
-	vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(m_GraphicsQueue);
+	m_GraphicsQueue.submit({ submitInfo }, vk::Fence());
+	m_GraphicsQueue.waitIdle();
 
 	vkFreeCommandBuffers(static_cast<VkDevice>(m_LogicalDevice), m_CommandPool, 1, &commandBuffer);
 }
