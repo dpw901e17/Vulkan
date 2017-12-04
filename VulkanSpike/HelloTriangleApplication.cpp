@@ -80,11 +80,11 @@ bool checkValidationLayerSupport() {
 	return true;
 }
 
-const std::vector<const char*> HelloTriangleApplication::m_DeviceExtensions = {
+const std::vector<const char*> HelloTriangleApplication::s_DeviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-const std::vector<Vertex> HelloTriangleApplication::m_Vertices = {
+const std::vector<Vertex> HelloTriangleApplication::s_Vertices = {
 	// Top
 	{ { -0.5f, -0.5,  0.5f },{ 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f }}, 
 	{ {  0.5f, -0.5,  0.5f },{ 1.0f, 0.0f, 1.0f }, { 0.0f, 0.0f }}, 
@@ -117,7 +117,7 @@ const std::vector<Vertex> HelloTriangleApplication::m_Vertices = {
 	{ { -0.5f, -0.5, -0.5f },{ 0.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } }
 };
 
-const std::vector<uint16_t>HelloTriangleApplication::m_Indices = {
+const std::vector<uint16_t>HelloTriangleApplication::s_Indices = {
 	4 * 0 + 0, 4 * 0 + 1, 4 * 0 + 2, 4 * 0 + 2, 4 * 0 + 3, 4 * 0 + 0, // Top
 	4 * 1 + 0, 4 * 1 + 1, 4 * 1 + 2, 4 * 1 + 2, 4 * 1 + 3, 4 * 1 + 0, // Left
 	4 * 2 + 0, 4 * 2 + 1, 4 * 2 + 2, 4 * 2 + 2, 4 * 2 + 3, 4 * 2 + 0, // Front
@@ -135,7 +135,7 @@ HelloTriangleApplication::HelloTriangleApplication(Scene scene)
 
 void HelloTriangleApplication::createVertexBuffer()
 {
-	auto buffer_size = sizeof(Vertex)*m_Vertices.size();
+	auto buffer_size = sizeof(Vertex)*s_Vertices.size();
 	VkBufferCreateInfo buffer_create_info = {};
 	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	buffer_create_info.size = buffer_size;
@@ -145,7 +145,7 @@ void HelloTriangleApplication::createVertexBuffer()
 	auto buffer = Buffer(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	
 	buffer.map();
-	memcpy(buffer.mappedMemory(), m_Vertices.data(), buffer_size);
+	memcpy(buffer.mappedMemory(), s_Vertices.data(), buffer_size);
 	buffer.unmap();
 
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -157,7 +157,7 @@ void HelloTriangleApplication::createVertexBuffer()
 
 void HelloTriangleApplication::createIndexBuffer()
 {
-	auto buffer_size = sizeof m_Indices[0]*m_Indices.size();
+	auto buffer_size = sizeof s_Indices[0]*s_Indices.size();
 	VkBufferCreateInfo buffer_create_info = {};
 	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	buffer_create_info.size = buffer_size;
@@ -167,7 +167,7 @@ void HelloTriangleApplication::createIndexBuffer()
 	auto buffer = Buffer(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 	buffer.map();
-	memcpy(buffer.mappedMemory(), m_Indices.data(), buffer_size);
+	memcpy(buffer.mappedMemory(), s_Indices.data(), buffer_size);
 	buffer.unmap();
 
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -561,7 +561,7 @@ void HelloTriangleApplication::createSemaphores() {
 
 			vkCmdDrawIndexed(
 				m_CommandBuffers[i],
-				m_Indices.size(),
+				s_Indices.size(),
 				1,	//<-- NOT instanced rendering
 				0,	//<-- first index (i.e. offset in indexbuffer)
 				0,
@@ -946,8 +946,8 @@ void HelloTriangleApplication::createSemaphores() {
 
 	createInfo.pEnabledFeatures = &deviceFeatures;
 
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(m_DeviceExtensions.size());
-	createInfo.ppEnabledExtensionNames = m_DeviceExtensions.data();
+	createInfo.enabledExtensionCount = static_cast<uint32_t>(s_DeviceExtensions.size());
+	createInfo.ppEnabledExtensionNames = s_DeviceExtensions.data();
 
 	createInfo.enabledLayerCount = 0;
 
@@ -1066,7 +1066,7 @@ void HelloTriangleApplication::createSemaphores() {
 	std::vector<VkExtensionProperties> avaliableExtensions(extensionCount);
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, avaliableExtensions.data());
 
-	std::set<std::string> requiredExtensions(m_DeviceExtensions.begin(), m_DeviceExtensions.end());
+	std::set<std::string> requiredExtensions(s_DeviceExtensions.begin(), s_DeviceExtensions.end());
 
 	for (const auto& extension : avaliableExtensions) {
 		requiredExtensions.erase(extension.extensionName);
@@ -1174,7 +1174,7 @@ std::vector<const char*> getRequiredExtensions()
 	return availableFormats[0];
 }
 
- VkPresentModeKHR HelloTriangleApplication::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes)
+ VkPresentModeKHR HelloTriangleApplication::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
 	VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 

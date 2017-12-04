@@ -109,9 +109,9 @@ private:
 	Scene m_Scene;
 	uint32_t m_DynamicAllignment;
 
-	static const std::vector<const char*> m_DeviceExtensions;
-	static const std::vector<Vertex> m_Vertices;
-	static const std::vector<uint16_t> m_Indices;
+	static const std::vector<const char*> s_DeviceExtensions;
+	static const std::vector<Vertex> s_Vertices;
+	static const std::vector<uint16_t> s_Indices;
 
 	void createVertexBuffer();
 	void createIndexBuffer();
@@ -175,7 +175,7 @@ private:
 	static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 
 	// Finds and returns the optimal present mode (i.e. how we write to swapchain).
-	static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
+	static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
 	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
