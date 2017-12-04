@@ -13,13 +13,25 @@
 #include <memory>
 #include "../scene-window-system/Window.h"
 #include "../scene-window-system/Scene.h"
+#include "../scene-window-system/TestConfiguration.h"
+#include <glm/glm.hpp>
 
-struct UniformBufferObject;
+#include "Buffer.h"
+#include <iostream>
+#include "Image.h"
+
 class Scene;
 struct QueueFamilyIndices;
 struct SwapChainSupportDetails;
 struct Vertex;
 
+
+inline std::ostream& operator<<(std::ostream& lhs, const glm::vec3& rhs)
+{
+	lhs << std::fixed 
+		<< "(" << rhs.x << ", " << rhs.y << ", " << rhs.z << ")";
+	return lhs;
+}
 
 class HelloTriangleApplication {
 public:
@@ -27,59 +39,81 @@ public:
 
 	// Does everything!
 	void run() {
-		initWindow();
 		initVulkan();
+
+		updateUniformBuffer();
+		updateDynamicUniformBuffer();
+
+		glm::mat4 model_view = m_UniformBufferObject.view * m_InstanceUniformBufferObject.model[0];
+		glm::vec3 model_space = { 0.0f, 0.0f, 0.0f };
+		glm::vec3 world_space = model_view * glm::vec4(model_space, 1.0f);
+		glm::vec3 camera_space = m_UniformBufferObject.projection * model_view * glm::vec4(model_space, 1.0f);
+
+		std::cout << "Model space:  " << model_space << std::endl;
+		std::cout << "World space:  " << world_space << std::endl;
+		std::cout << "Camera space: " << camera_space << std::endl;
+
 		mainLoop();
 		cleanup();
 	}
 
 private:
-	std::unique_ptr<Window> window;
-	VkInstance instance;
-	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	VkDevice logicalDevice; // Logical device. Called device in tut.
-	VkQueue graphicsQueue;
+	struct
+	{
+		glm::mat4 projection;
+		glm::mat4 view;
+	} m_UniformBufferObject;
+
+	struct
+	{
+		glm::mat4* model = nullptr;
+	} m_InstanceUniformBufferObject;
+
+	Window m_Window;
+	VkInstance m_Instance;
+	VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
+	vk::Device m_LogicalDevice;
+	VkQueue m_GraphicsQueue;
 	VkSurfaceKHR m_Surface;
-	VkQueue presentQueue;
-	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-	std::vector<VkImage> swapChainImages;
-	VkFormat swapChainImageFormat;
-	VkExtent2D swapChainExtent;
-	std::vector<VkImageView> swapChainImageViews;
-	VkRenderPass renderPass;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkPipelineLayout pipelineLayout;
-	VkPipeline graphicsPipeline;
-	std::vector<VkFramebuffer> swapChainFramebuffers;
-	VkCommandPool commandPool;
-	std::vector<VkCommandBuffer> commandBuffers;
-	VkSemaphore imageAvaliableSemaphore;
-	VkSemaphore renderFinishedSemaphore;
-	VkDebugReportCallbackEXT callback;
+	VkQueue m_PresentQueue;
 
-	VkBuffer vertexBuffer;
-	VkDeviceMemory vertexBufferMemory;
-	VkBuffer indexBuffer;
-	VkDeviceMemory indexBufferMemory;
-	VkBuffer uniformBuffer;
-	VkDeviceMemory uniformBufferMemory;
-	VkDescriptorPool descriptorPool;
-	VkDescriptorSet descriptorSet;
-	VkImage textureImage;
-	VkDeviceMemory textureImageMemory;
-	VkImageView m_TextureImageView;
+	VkSwapchainKHR m_SwapChain = VK_NULL_HANDLE;
+	std::vector<VkImage> m_SwapChainImages;
+	VkFormat m_SwapChainImageFormat;
+	VkExtent2D m_SwapChainExtent;
+	std::vector<VkImageView> m_SwapChainImageViews;
+	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
+
+	VkRenderPass m_RenderPass;
+	VkDescriptorSetLayout m_DescriptorSetLayout;
+	VkPipelineLayout m_PipelineLayout;
+	VkPipeline m_GraphicsPipeline;
+
+	VkCommandPool m_CommandPool;
+	std::vector<VkCommandBuffer> m_CommandBuffers;
+
+	VkSemaphore m_ImageAvaliableSemaphore;
+	VkSemaphore m_RenderFinishedSemaphore;
+	VkDebugReportCallbackEXT m_Callback;
+
+	std::unique_ptr<Buffer> m_VertexBuffer;
+	std::unique_ptr<Buffer> m_IndexBuffer;
+	std::unique_ptr<Buffer> m_UniformBuffer;
+	std::unique_ptr<Buffer> m_DynamicUniformBuffer;
+
+	VkDescriptorPool m_DescriptorPool;
+	VkDescriptorSet m_DescriptorSet;
+	std::unique_ptr<Image> m_TextureImage;
 	VkSampler m_TextureSampler;
-	VkImage m_DepthImage;
-	VkDeviceMemory m_DepthImageMemory;
-	VkImageView m_DepthImageView;
+	std::unique_ptr<Image> m_DepthImage;
 	Scene m_Scene;
+	uint32_t m_DynamicAllignment;
+	vk::QueryPool m_QueryPool;
+	TestConfiguration m_testConfiguration;
 
-	static const std::vector<const char*> deviceExtensions;
-	static const std::vector<Vertex> vertices;
-	static const std::vector<uint16_t> indices;
-
-	// Crates a GLFW window (without OpenGL context)
-	void initWindow();
+	static const std::vector<const char*> s_DeviceExtensions;
+	static const std::vector<Vertex> s_Vertices;
+	static const std::vector<uint16_t> s_Indices;
 
 	void createVertexBuffer();
 	void createIndexBuffer();
@@ -89,11 +123,11 @@ private:
 	void createDescriptorPool();
 	void createDescriptorSet();
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT) const;
-	void createTextureImageView();
 	void createTextureSampler();
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 	VkFormat findDepthFormat() const;
 	void createDepthResources();
+	void createQueryPool();
 	// Initializes Vulkan
 	void initVulkan();
 
@@ -108,8 +142,6 @@ private:
 	void createRenderPass();
 
 	void createGraphicsPipeline();
-
-	VkShaderModule createShaderModule(const std::vector<char>& code) const;
 
 	void createImageViews();
 
@@ -146,12 +178,13 @@ private:
 	static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 
 	// Finds and returns the optimal present mode (i.e. how we write to swapchain).
-	static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
+	static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
 	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
+	void updateUniformBuffer();
+	void updateDynamicUniformBuffer() const;
 
-	void setUniformBuffer(const UniformBufferObject&);
 	// Handles (window) events
 	void mainLoop();
 
@@ -164,14 +197,9 @@ private:
 
 	void cleanupSwapChain();
 
-	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
-
-	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
 	void copyBuffer(VkBuffer source, VkBuffer destination, VkDeviceSize);
 
 	void createTextureImage();
-
-	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
 	VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);

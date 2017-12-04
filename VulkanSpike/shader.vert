@@ -1,11 +1,14 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable //<-- needs to be there for Vulkan to work
 
-layout(binding = 0) uniform UniformBufferObject {
-  mat4 model;
+layout(binding = 0) uniform UniformBufferObjectView {
+  mat4 projection;
   mat4 view;
-  mat4 proj;
-} ubo;
+} uboView;
+
+layout(binding = 1) uniform UniformBufferObjectInstance {
+  mat4 model;
+} uboInstance;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
@@ -20,7 +23,7 @@ out gl_PerVertex {
 };
 
 void main() {
-	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
+	gl_Position = uboView.projection * uboView.view * uboInstance.model * vec4(inPosition, 1.0);
 	fragColor = inColor;
-  fragTexCoord = inTexCoord;
+	fragTexCoord = inTexCoord;
 }
