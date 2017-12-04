@@ -142,17 +142,16 @@ void HelloTriangleApplication::createVertexBuffer()
 	buffer_create_info.flags = VK_SHARING_MODE_EXCLUSIVE;
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	auto buffer = Buffer(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	auto buffer = Buffer(vk::PhysicalDevice(m_PhysicalDevice), m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 	
-	buffer.map();
-	memcpy(buffer.mappedMemory(), s_Vertices.data(), buffer_size);
+	memcpy(buffer.map(), s_Vertices.data(), buffer_size);
 	buffer.unmap();
 
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-	m_VertexBuffer = std::make_unique<Buffer>(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	m_VertexBuffer = std::make_unique<Buffer>(vk::PhysicalDevice(m_PhysicalDevice), m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-	copyBuffer(buffer.m_Buffer, m_VertexBuffer->m_Buffer, buffer_size);
+	copyBuffer(static_cast<VkBuffer>(buffer.m_Buffer), static_cast<VkBuffer>(m_VertexBuffer->m_Buffer), buffer_size);
 }
 
 void HelloTriangleApplication::createIndexBuffer()
@@ -164,17 +163,16 @@ void HelloTriangleApplication::createIndexBuffer()
 	buffer_create_info.flags = VK_SHARING_MODE_EXCLUSIVE;
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	auto buffer = Buffer(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	auto buffer = Buffer(static_cast<vk::PhysicalDevice>(m_PhysicalDevice), m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-	buffer.map();
-	memcpy(buffer.mappedMemory(), s_Indices.data(), buffer_size);
+	memcpy(buffer.map(), s_Indices.data(), buffer_size);
 	buffer.unmap();
 
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-	m_IndexBuffer =  std::make_unique<Buffer>(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	m_IndexBuffer =  std::make_unique<Buffer>(static_cast<vk::PhysicalDevice>(m_PhysicalDevice), m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-	copyBuffer(buffer.m_Buffer, m_IndexBuffer->m_Buffer, buffer_size);
+	copyBuffer(static_cast<VkBuffer>(buffer.m_Buffer), static_cast<VkBuffer>(m_IndexBuffer->m_Buffer), buffer_size);
 }
 
 void HelloTriangleApplication::createDescriptorSetLayout()
@@ -227,7 +225,7 @@ void HelloTriangleApplication::createUniformBuffer()
 	buffer_create_info.size = buffer_size;
 	buffer_create_info.flags = VK_SHARING_MODE_EXCLUSIVE;
 	buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	m_UniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	m_UniformBuffer = std::make_unique<Buffer>(static_cast<vk::PhysicalDevice>(m_PhysicalDevice), m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent);
 
 	auto allignment = properties.limits.minUniformBufferOffsetAlignment;
 	m_DynamicAllignment = sizeof(*m_InstanceUniformBufferObject.model);
@@ -242,8 +240,7 @@ void HelloTriangleApplication::createUniformBuffer()
 	buffer_create_info.size = buffer_size;
 	buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 	// Because no HOST_COHERENT flag we must flush the buffer when writing to it
-	m_DynamicUniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT); 
-	m_DynamicUniformBuffer->map();
+	m_DynamicUniformBuffer = std::make_unique<Buffer>(static_cast<vk::PhysicalDevice>(m_PhysicalDevice), m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 }
 
 
@@ -314,12 +311,12 @@ void HelloTriangleApplication::createDescriptorSet()
 	}
 
 	VkDescriptorBufferInfo bufferInfo;
-	bufferInfo.buffer = m_UniformBuffer->m_Buffer;
+	bufferInfo.buffer = static_cast<VkBuffer>(m_UniformBuffer->m_Buffer);
 	bufferInfo.offset = 0;
 	bufferInfo.range = m_UniformBuffer->size();
 
 	VkDescriptorBufferInfo dynamicBufferInfo;
-	dynamicBufferInfo.buffer = m_DynamicUniformBuffer->m_Buffer;
+	dynamicBufferInfo.buffer = static_cast<VkBuffer>(m_DynamicUniformBuffer->m_Buffer);
 	dynamicBufferInfo.offset = 0;
 	dynamicBufferInfo.range = m_DynamicAllignment;
 
@@ -576,10 +573,10 @@ void HelloTriangleApplication::createSemaphores() {
 
 
 		VkDeviceSize offset =  0;
-		vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, &m_VertexBuffer->m_Buffer, &offset);
-		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_IndexBuffer->m_Buffer, 0, VK_INDEX_TYPE_UINT16);
-
 		vk::CommandBuffer cmdbuf(m_CommandBuffers[i]);
+		cmdbuf.bindVertexBuffers(0, 1, &m_VertexBuffer->m_Buffer, &offset);
+		cmdbuf.bindIndexBuffer(m_IndexBuffer->m_Buffer, 0, vk::IndexType::eUint16);
+
 		cmdbuf.beginQuery(m_QueryPool, i, vk::QueryControlFlags());
 
 		for (int j = 0; j < m_Scene.renderObjects().size(); j++) {
@@ -1263,8 +1260,7 @@ void HelloTriangleApplication::updateUniformBuffer()
 		m_Scene.camera().Far());
 	m_UniformBufferObject.projection[1][1] *= -1; // flip up and down
 
-	m_UniformBuffer->map();
-	memcpy(m_UniformBuffer->mappedMemory(), &m_UniformBufferObject, sizeof(m_UniformBufferObject));
+	memcpy(m_UniformBuffer->map(), &m_UniformBufferObject, sizeof(m_UniformBufferObject));
 	m_UniformBuffer->unmap();
 }
 
@@ -1276,13 +1272,9 @@ void HelloTriangleApplication::updateDynamicUniformBuffer() const
 		auto model = reinterpret_cast<glm::mat4*>(reinterpret_cast<uint64_t>(m_InstanceUniformBufferObject.model) + (index * m_DynamicAllignment));
 		*model = translate(glm::mat4(), { render_object.x(), render_object.y(), render_object.z() });
 	}
-	VkMappedMemoryRange mappedMemoryRange{};
-	mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-	mappedMemoryRange.memory = m_DynamicUniformBuffer->m_Memory;
-	mappedMemoryRange.size = m_DynamicAllignment * m_Scene.renderObjects().size();
 
-	memcpy(m_DynamicUniformBuffer->mappedMemory(), m_InstanceUniformBufferObject.model, m_DynamicAllignment * m_Scene.renderObjects().size());
-	vkFlushMappedMemoryRanges(static_cast<VkDevice>(m_LogicalDevice), 1, &mappedMemoryRange);
+	memcpy(m_DynamicUniformBuffer->map(), m_InstanceUniformBufferObject.model, m_DynamicAllignment * m_Scene.renderObjects().size());
+	m_DynamicUniformBuffer->unmap();
 }
 
 void HelloTriangleApplication::mainLoop() {
@@ -1494,10 +1486,9 @@ void HelloTriangleApplication::createTextureImage()
 	buffer_create_info.size = imageSize;
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	Buffer buffer(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	Buffer buffer(static_cast<vk::PhysicalDevice>(m_PhysicalDevice), m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
 
-	buffer.map();
-	memcpy(buffer.mappedMemory(), pixels, static_cast<size_t>(imageSize));
+	memcpy(buffer.map(), pixels, static_cast<size_t>(imageSize));
 	buffer.unmap();
 
 	stbi_image_free(pixels);
@@ -1516,7 +1507,7 @@ void HelloTriangleApplication::createTextureImage()
 	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	m_TextureImage = std::make_unique<Image>(static_cast<VkDevice>(m_LogicalDevice), m_PhysicalDevice, imageCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 	transitionImageLayout(m_TextureImage->m_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	copyBufferToImage(buffer.m_Buffer, m_TextureImage->m_Image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+	copyBufferToImage(static_cast<VkBuffer>(buffer.m_Buffer), m_TextureImage->m_Image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
 	//prepare to use image in shader:
 	transitionImageLayout(m_TextureImage->m_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);

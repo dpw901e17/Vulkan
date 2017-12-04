@@ -1,43 +1,33 @@
 #include "Buffer.h"
 #include "Utility.h"
 
-Buffer::Buffer(VkPhysicalDevice physicalDevice, VkDevice device, VkBufferCreateInfo buffer_info, VkMemoryPropertyFlags properties)
-	: m_Device(device), m_Size(buffer_info.size)
+Buffer::Buffer(vk::PhysicalDevice physicalDevice, vk::Device device, vk::BufferCreateInfo buffer_info, vk::MemoryPropertyFlags properties)
+	: m_Buffer(device.createBuffer(buffer_info)), m_Device(device), m_Size(buffer_info.size)
 {
-	if (vkCreateBuffer(device, &buffer_info, nullptr, &m_Buffer) != VK_SUCCESS)
-	{
-		throw std::runtime_error("Failed to create buffer!");
-	}
+	auto memRequirements = device.getBufferMemoryRequirements(m_Buffer);
 
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(device, m_Buffer, &memRequirements);
+	vk::MemoryAllocateInfo allocInfo = {};
+	allocInfo
+		.setAllocationSize(memRequirements.size)
+		.setMemoryTypeIndex(findMemoryType(static_cast<VkPhysicalDevice>(physicalDevice), memRequirements.memoryTypeBits, static_cast<VkMemoryPropertyFlags>(properties)));
 
-	VkMemoryAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = findMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
+	m_Memory = device.allocateMemory(allocInfo);
 
-	if (vkAllocateMemory(device, &allocInfo, nullptr, &m_Memory))
-	{
-		throw std::runtime_error("Failed to allocate vertex buffer memory!");
-	}
-
-	vkBindBufferMemory(device, m_Buffer, m_Memory, 0);
+	device.bindBufferMemory(m_Buffer, m_Memory, 0);
 }
 
 Buffer::~Buffer()
 {
-	vkDestroyBuffer(m_Device, m_Buffer, nullptr);
-	vkFreeMemory(m_Device, m_Memory, nullptr);
+	m_Device.destroyBuffer(m_Buffer);
+	m_Device.freeMemory(m_Memory);
 }
 
-VkResult Buffer::map()
+void* Buffer::map() const
 {
-	return vkMapMemory(m_Device, m_Memory, 0, VK_WHOLE_SIZE, 0, &m_Mapped);
+	return m_Device.mapMemory(m_Memory, 0, VK_WHOLE_SIZE);
 }
 
-void Buffer::unmap()
+void Buffer::unmap() const
 {
-	vkUnmapMemory(m_Device, m_Memory);
-	m_Mapped = nullptr;
+	m_Device.unmapMemory(m_Memory);
 }

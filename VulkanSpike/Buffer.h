@@ -4,23 +4,16 @@
 class Buffer
 {
 public:
-	Buffer(VkPhysicalDevice physicalDevice, VkDevice device, VkBufferCreateInfo buffer_info, VkMemoryPropertyFlags properties);
+	Buffer(vk::PhysicalDevice physicalDevice, vk::Device device, vk::BufferCreateInfo buffer_info, vk::MemoryPropertyFlags properties);
 	~Buffer();
 
-	VkResult map();
-	void unmap();
+	void* map() const;
+	void unmap() const;
+	vk::DeviceSize size() const { return m_Size; }
 
-	void* mappedMemory() const
-	{
-		if (m_Mapped == nullptr) throw std::runtime_error("Trying to get mapped memory of a buffer that is not mapped.");
-		return m_Mapped ;
-	}
-	VkDeviceSize size() const { return m_Size; }
-
-	VkBuffer m_Buffer;
-	VkDeviceMemory m_Memory;
+	vk::Buffer m_Buffer;
+	vk::DeviceMemory m_Memory;
 private:
-	void* m_Mapped = nullptr;
-	VkDevice m_Device;
-	VkDeviceSize m_Size;
+	vk::Device m_Device;
+	vk::DeviceSize m_Size;
 };
