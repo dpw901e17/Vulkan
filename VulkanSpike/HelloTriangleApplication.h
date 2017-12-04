@@ -72,7 +72,7 @@ private:
 	Window m_Window;
 	VkInstance m_Instance;
 	VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
-	VkDevice m_LogicalDevice; // Logical device. Called device in tut.
+	vk::Device m_LogicalDevice;
 	VkQueue m_GraphicsQueue;
 	VkSurfaceKHR m_Surface;
 	VkQueue m_PresentQueue;
@@ -108,6 +108,7 @@ private:
 	std::unique_ptr<Image> m_DepthImage;
 	Scene m_Scene;
 	uint32_t m_DynamicAllignment;
+	vk::QueryPool m_QueryPool;
 
 	static const std::vector<const char*> s_DeviceExtensions;
 	static const std::vector<Vertex> s_Vertices;
@@ -125,6 +126,7 @@ private:
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 	VkFormat findDepthFormat() const;
 	void createDepthResources();
+	void createQueryPool();
 	// Initializes Vulkan
 	void initVulkan();
 

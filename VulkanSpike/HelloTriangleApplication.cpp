@@ -142,7 +142,7 @@ void HelloTriangleApplication::createVertexBuffer()
 	buffer_create_info.flags = VK_SHARING_MODE_EXCLUSIVE;
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	auto buffer = Buffer(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	auto buffer = Buffer(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 	
 	buffer.map();
 	memcpy(buffer.mappedMemory(), s_Vertices.data(), buffer_size);
@@ -150,7 +150,7 @@ void HelloTriangleApplication::createVertexBuffer()
 
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-	m_VertexBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	m_VertexBuffer = std::make_unique<Buffer>(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	copyBuffer(buffer.m_Buffer, m_VertexBuffer->m_Buffer, buffer_size);
 }
@@ -164,7 +164,7 @@ void HelloTriangleApplication::createIndexBuffer()
 	buffer_create_info.flags = VK_SHARING_MODE_EXCLUSIVE;
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	auto buffer = Buffer(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	auto buffer = Buffer(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 	buffer.map();
 	memcpy(buffer.mappedMemory(), s_Indices.data(), buffer_size);
@@ -172,7 +172,7 @@ void HelloTriangleApplication::createIndexBuffer()
 
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-	m_IndexBuffer =  std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	m_IndexBuffer =  std::make_unique<Buffer>(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	copyBuffer(buffer.m_Buffer, m_IndexBuffer->m_Buffer, buffer_size);
 }
@@ -210,7 +210,7 @@ void HelloTriangleApplication::createDescriptorSetLayout()
 	layoutInfo.bindingCount = bindings.size();
 	layoutInfo.pBindings = bindings.data();
 
-	if(vkCreateDescriptorSetLayout(m_LogicalDevice, &layoutInfo, nullptr, &m_DescriptorSetLayout) != VK_SUCCESS)
+	if(vkCreateDescriptorSetLayout(static_cast<VkDevice>(m_LogicalDevice), &layoutInfo, nullptr, &m_DescriptorSetLayout) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create discriptor set layout!");
 	}
@@ -227,7 +227,7 @@ void HelloTriangleApplication::createUniformBuffer()
 	buffer_create_info.size = buffer_size;
 	buffer_create_info.flags = VK_SHARING_MODE_EXCLUSIVE;
 	buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	m_UniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	m_UniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 	auto allignment = properties.limits.minUniformBufferOffsetAlignment;
 	m_DynamicAllignment = sizeof(*m_InstanceUniformBufferObject.model);
@@ -242,7 +242,7 @@ void HelloTriangleApplication::createUniformBuffer()
 	buffer_create_info.size = buffer_size;
 	buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 	// Because no HOST_COHERENT flag we must flush the buffer when writing to it
-	m_DynamicUniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT); 
+	m_DynamicUniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT); 
 	m_DynamicUniformBuffer->map();
 }
 
@@ -295,7 +295,7 @@ void HelloTriangleApplication::createDescriptorPool()
 	pool_info.pPoolSizes = pool_sizes.data();
 	pool_info.maxSets = 1; // TODO: Change to two ??
 
-	if(vkCreateDescriptorPool(m_LogicalDevice, &pool_info, nullptr, &m_DescriptorPool) != VK_SUCCESS)
+	if(vkCreateDescriptorPool(static_cast<VkDevice>(m_LogicalDevice), &pool_info, nullptr, &m_DescriptorPool) != VK_SUCCESS)
 	{
 		std::runtime_error("Failed to create descriptor pool!");
 	}
@@ -309,7 +309,7 @@ void HelloTriangleApplication::createDescriptorSet()
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.pSetLayouts = &m_DescriptorSetLayout;
 
-	if (vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo, &m_DescriptorSet) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(static_cast<VkDevice>(m_LogicalDevice), &allocInfo, &m_DescriptorSet) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate descriptor set!");
 	}
 
@@ -359,7 +359,7 @@ void HelloTriangleApplication::createDescriptorSet()
 	descriptorWrites[2].pImageInfo = &image_info; 
 	descriptorWrites[2].pTexelBufferView = nullptr; 
 
-	vkUpdateDescriptorSets(m_LogicalDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+	vkUpdateDescriptorSets(static_cast<VkDevice>(m_LogicalDevice), descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 }
 
 VkImageView HelloTriangleApplication::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags) const
@@ -377,7 +377,7 @@ VkImageView HelloTriangleApplication::createImageView(VkImage image, VkFormat fo
 
 	VkImageView image_view;
 
-	if (vkCreateImageView(m_LogicalDevice, &view_info, nullptr, &image_view) != VK_SUCCESS) {
+	if (vkCreateImageView(static_cast<VkDevice>(m_LogicalDevice), &view_info, nullptr, &image_view) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create image view!");
 	}
 
@@ -404,7 +404,7 @@ void HelloTriangleApplication::createTextureSampler()
 	sampler_create_info.minLod = 0.0f;
 	sampler_create_info.maxLod = 0.0f;
 
-	if (vkCreateSampler(m_LogicalDevice, &sampler_create_info, nullptr, &m_TextureSampler) != VK_SUCCESS) {
+	if (vkCreateSampler(static_cast<VkDevice>(m_LogicalDevice), &sampler_create_info, nullptr, &m_TextureSampler) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create texture sampler!");
 	}
 }
@@ -455,9 +455,32 @@ void HelloTriangleApplication::createDepthResources()
 	imageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
-	m_DepthImage = std::make_unique<Image>(m_LogicalDevice, m_PhysicalDevice, imageCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+	m_DepthImage = std::make_unique<Image>(static_cast<VkDevice>(m_LogicalDevice), m_PhysicalDevice, imageCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 
 	transitionImageLayout(m_DepthImage->m_Image, m_DepthImage->m_Format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+}
+
+void HelloTriangleApplication::createQueryPool()
+{
+	vk::QueryPoolCreateInfo query_pool_create_info;
+	query_pool_create_info
+		.setQueryType(vk::QueryType::ePipelineStatistics)
+		.setQueryCount(m_SwapChainFramebuffers.size())
+		.setPipelineStatistics(
+			vk::QueryPipelineStatisticFlagBits::eClippingInvocations |
+			vk::QueryPipelineStatisticFlagBits::eClippingPrimitives |
+			vk::QueryPipelineStatisticFlagBits::eComputeShaderInvocations |
+			vk::QueryPipelineStatisticFlagBits::eFragmentShaderInvocations |
+			vk::QueryPipelineStatisticFlagBits::eGeometryShaderInvocations |
+			vk::QueryPipelineStatisticFlagBits::eInputAssemblyPrimitives |
+			vk::QueryPipelineStatisticFlagBits::eTessellationControlShaderPatches |
+			vk::QueryPipelineStatisticFlagBits::eGeometryShaderPrimitives |
+			vk::QueryPipelineStatisticFlagBits::eInputAssemblyVertices |
+			vk::QueryPipelineStatisticFlagBits::eTessellationEvaluationShaderInvocations |
+			vk::QueryPipelineStatisticFlagBits::eVertexShaderInvocations);
+
+	// Throws exception on fail
+	m_QueryPool = m_LogicalDevice.createQueryPool(query_pool_create_info);
 }
 
 // Initializes Vulkan
@@ -482,6 +505,7 @@ void HelloTriangleApplication::initVulkan() {
 	createUniformBuffer();
 	createDescriptorPool();
 	createDescriptorSet();
+	createQueryPool();
 	createCommandBuffers();
 	createSemaphores();
 }
@@ -490,8 +514,8 @@ void HelloTriangleApplication::createSemaphores() {
 	VkSemaphoreCreateInfo semaphoreInfo = {};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-	if (vkCreateSemaphore(m_LogicalDevice, &semaphoreInfo, nullptr, &m_ImageAvaliableSemaphore) != VK_SUCCESS ||
-		vkCreateSemaphore(m_LogicalDevice, &semaphoreInfo, nullptr, &m_RenderFinishedSemaphore) != VK_SUCCESS)
+	if (vkCreateSemaphore(static_cast<VkDevice>(m_LogicalDevice), &semaphoreInfo, nullptr, &m_ImageAvaliableSemaphore) != VK_SUCCESS ||
+		vkCreateSemaphore(static_cast<VkDevice>(m_LogicalDevice), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphore) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create semaphores!");
 	}
@@ -508,7 +532,7 @@ void HelloTriangleApplication::createSemaphores() {
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; //buffers can be primary (called to by user) or secondary (called to by primary buffer)
 	allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
 
-	if (vkAllocateCommandBuffers(m_LogicalDevice, &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
+	if (vkAllocateCommandBuffers(static_cast<VkDevice>(m_LogicalDevice), &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate command buffers!");
 	}
 
@@ -555,6 +579,9 @@ void HelloTriangleApplication::createSemaphores() {
 		vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, &m_VertexBuffer->m_Buffer, &offset);
 		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_IndexBuffer->m_Buffer, 0, VK_INDEX_TYPE_UINT16);
 
+		vk::CommandBuffer cmdbuf(m_CommandBuffers[i]);
+		cmdbuf.beginQuery(m_QueryPool, i, vk::QueryControlFlags());
+
 		for (int j = 0; j < m_Scene.renderObjects().size(); j++) {
 			uint32_t dynamic_offset = j * m_DynamicAllignment;
 			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSet, 1, &dynamic_offset);
@@ -568,6 +595,8 @@ void HelloTriangleApplication::createSemaphores() {
 				0
 			);
 		}
+
+		cmdbuf.endQuery(m_QueryPool, i);
 
 		//end recording
 		vkCmdEndRenderPass(m_CommandBuffers[i]);
@@ -586,7 +615,7 @@ void HelloTriangleApplication::createSemaphores() {
 	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
 	poolInfo.flags = 0; //optional about rerecording strategy of cmd buffer(s)
 
-	if (vkCreateCommandPool(m_LogicalDevice, &poolInfo, nullptr, &m_CommandPool) != VK_SUCCESS) {
+	if (vkCreateCommandPool(static_cast<VkDevice>(m_LogicalDevice), &poolInfo, nullptr, &m_CommandPool) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool!");
 	}
 }
@@ -609,7 +638,7 @@ void HelloTriangleApplication::createSemaphores() {
 		framebufferInfo.height = m_SwapChainExtent.height;
 		framebufferInfo.layers = 1;
 
-		if (vkCreateFramebuffer(m_LogicalDevice, &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != VK_SUCCESS) {
+		if (vkCreateFramebuffer(static_cast<VkDevice>(m_LogicalDevice), &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create framebuffer!");
 		}
 	}
@@ -676,7 +705,7 @@ void HelloTriangleApplication::createSemaphores() {
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
 
-	if (vkCreateRenderPass(m_LogicalDevice, &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS) {
+	if (vkCreateRenderPass(static_cast<VkDevice>(m_LogicalDevice), &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create render pass!");
 	}
 }
@@ -684,8 +713,8 @@ void HelloTriangleApplication::createSemaphores() {
  void HelloTriangleApplication::createGraphicsPipeline() {
 
 	//get byte code of shaders
-	auto vertShader = Shader(m_LogicalDevice, "./shaders/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-	auto fragShader = Shader(m_LogicalDevice, "./shaders/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+	auto vertShader = Shader(static_cast<VkDevice>(m_LogicalDevice), "./shaders/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+	auto fragShader = Shader(static_cast<VkDevice>(m_LogicalDevice), "./shaders/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	//for later reference:
 	VkPipelineShaderStageCreateInfo shaderStages[] = { vertShader.m_Info, fragShader.m_Info };
@@ -782,7 +811,7 @@ void HelloTriangleApplication::createSemaphores() {
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-	if (vkCreatePipelineLayout(m_LogicalDevice, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) {
+	if (vkCreatePipelineLayout(static_cast<VkDevice>(m_LogicalDevice), &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create pipeline layout!");
 	}
 
@@ -822,7 +851,7 @@ void HelloTriangleApplication::createSemaphores() {
 	pipelineInfo.basePipelineIndex = -1; //optional //see above
 
 	VkResult result = vkCreateGraphicsPipelines(
-		m_LogicalDevice,		//<-- device
+		static_cast<VkDevice>(m_LogicalDevice),		//<-- device
 		VK_NULL_HANDLE,		//<-- pipeline cache for creation on mult. pipelines
 		1,					//<-- number of infos in array below
 		&pipelineInfo,		//<-- pipeline info array
@@ -891,13 +920,13 @@ void HelloTriangleApplication::createSemaphores() {
 
 	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	if (vkCreateSwapchainKHR(m_LogicalDevice, &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS) {
+	if (vkCreateSwapchainKHR(static_cast<VkDevice>(m_LogicalDevice), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create swap chain! :(");
 	}
 
-	vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &imageCount, nullptr);
+	vkGetSwapchainImagesKHR(static_cast<VkDevice>(m_LogicalDevice), m_SwapChain, &imageCount, nullptr);
 	m_SwapChainImages.resize(imageCount);
-	vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &imageCount, m_SwapChainImages.data());
+	vkGetSwapchainImagesKHR(static_cast<VkDevice>(m_LogicalDevice), m_SwapChain, &imageCount, m_SwapChainImages.data());
 
 	m_SwapChainImageFormat = surfaceFormat.format;
 	m_SwapChainExtent = extent;
@@ -936,6 +965,7 @@ void HelloTriangleApplication::createSemaphores() {
 
 	VkPhysicalDeviceFeatures deviceFeatures = {};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
+	deviceFeatures.pipelineStatisticsQuery = VK_TRUE;
 
 												  // Creating VkDeviceCreateInfo object
 	VkDeviceCreateInfo createInfo = {};
@@ -951,19 +981,23 @@ void HelloTriangleApplication::createSemaphores() {
 
 	createInfo.enabledLayerCount = 0;
 
-	if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_LogicalDevice) != VK_SUCCESS) {
+	VkDevice device;
+
+	if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create logical device!");
 	}
 
+	m_LogicalDevice = vk::Device(device);
+
 	// Get handle to queue in the logicalDevice
 	vkGetDeviceQueue(
-		m_LogicalDevice, //<-- handle for device 
+		static_cast<VkDevice>(m_LogicalDevice), //<-- handle for device 
 		indices.graphicsFamily, //<-- family of queues to access
 		0, //<-- index of specific queue
 		&m_GraphicsQueue //<-- handle output 
 	);
 
-	vkGetDeviceQueue(m_LogicalDevice, indices.presentFamily, 0, &m_PresentQueue);
+	vkGetDeviceQueue(static_cast<VkDevice>(m_LogicalDevice), indices.presentFamily, 0, &m_PresentQueue);
 
 }
 
@@ -1248,7 +1282,7 @@ void HelloTriangleApplication::updateDynamicUniformBuffer() const
 	mappedMemoryRange.size = m_DynamicAllignment * m_Scene.renderObjects().size();
 
 	memcpy(m_DynamicUniformBuffer->mappedMemory(), m_InstanceUniformBufferObject.model, m_DynamicAllignment * m_Scene.renderObjects().size());
-	vkFlushMappedMemoryRanges(m_LogicalDevice, 1, &mappedMemoryRange);
+	vkFlushMappedMemoryRanges(static_cast<VkDevice>(m_LogicalDevice), 1, &mappedMemoryRange);
 }
 
 void HelloTriangleApplication::mainLoop() {
@@ -1273,7 +1307,7 @@ void HelloTriangleApplication::mainLoop() {
 			drawFrame();
 		}
 	}
-	vkDeviceWaitIdle(m_LogicalDevice);
+	vkDeviceWaitIdle(static_cast<VkDevice>(m_LogicalDevice));
 }
 
 void HelloTriangleApplication::drawFrame() {
@@ -1281,7 +1315,7 @@ void HelloTriangleApplication::drawFrame() {
 	// Aquire image
 	uint32_t imageIndex;
 	auto result = vkAcquireNextImageKHR(
-		m_LogicalDevice, //<-- device driver
+		static_cast<VkDevice>(m_LogicalDevice), //<-- device driver
 		m_SwapChain, //<-- images to write to
 		std::numeric_limits<uint64_t>::max(), //<-- disabled timeout
 		m_ImageAvaliableSemaphore, // <--semaphore to use
@@ -1353,6 +1387,10 @@ void HelloTriangleApplication::drawFrame() {
 	}
 
 	vkQueueWaitIdle(m_PresentQueue);
+
+	PipelineStatisticsResult queryResults;
+
+	m_LogicalDevice.getQueryPoolResults(m_QueryPool, imageIndex, 1, sizeof queryResults, &queryResults, sizeof uint64_t, vk::QueryResultFlagBits::eWait | vk::QueryResultFlagBits::e64);
 }
 
 void HelloTriangleApplication::cleanup() {
@@ -1362,18 +1400,20 @@ void HelloTriangleApplication::cleanup() {
 
 	_aligned_free(m_InstanceUniformBufferObject.model);
 
-	vkDestroySampler(m_LogicalDevice, m_TextureSampler, nullptr);
+	vkDestroySampler(static_cast<VkDevice>(m_LogicalDevice), m_TextureSampler, nullptr);
 
-	vkDestroyDescriptorPool(m_LogicalDevice, m_DescriptorPool, nullptr);
+	vkDestroyDescriptorPool(static_cast<VkDevice>(m_LogicalDevice), m_DescriptorPool, nullptr);
 
-	vkDestroyDescriptorSetLayout(m_LogicalDevice, m_DescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(static_cast<VkDevice>(m_LogicalDevice), m_DescriptorSetLayout, nullptr);
 
-	vkDestroySemaphore(m_LogicalDevice, m_RenderFinishedSemaphore, nullptr);
-	vkDestroySemaphore(m_LogicalDevice, m_ImageAvaliableSemaphore, nullptr);
+	vkDestroySemaphore(static_cast<VkDevice>(m_LogicalDevice), m_RenderFinishedSemaphore, nullptr);
+	vkDestroySemaphore(static_cast<VkDevice>(m_LogicalDevice), m_ImageAvaliableSemaphore, nullptr);
 
-	vkDestroyCommandPool(m_LogicalDevice, m_CommandPool, nullptr);
+	vkDestroyCommandPool(static_cast<VkDevice>(m_LogicalDevice), m_CommandPool, nullptr);
 
-	vkDestroyDevice(m_LogicalDevice, nullptr);
+	m_LogicalDevice.destroyQueryPool(m_QueryPool);
+
+	vkDestroyDevice(static_cast<VkDevice>(m_LogicalDevice), nullptr);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	DestroyDebugReportCallbackEXT(m_Instance, m_Callback, nullptr);
 	//clean stuff regarding instance before instance itself
@@ -1382,7 +1422,7 @@ void HelloTriangleApplication::cleanup() {
 
 void HelloTriangleApplication::recreateSwapChain()
 {
-	vkDeviceWaitIdle(m_LogicalDevice);
+	vkDeviceWaitIdle(static_cast<VkDevice>(m_LogicalDevice));
 
 	cleanupSwapChain();
 
@@ -1397,22 +1437,22 @@ void HelloTriangleApplication::recreateSwapChain()
 
 void HelloTriangleApplication::cleanupSwapChain()
 {
-	vkDeviceWaitIdle(m_LogicalDevice);
+	vkDeviceWaitIdle(static_cast<VkDevice>(m_LogicalDevice));
 	for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++) {
-		vkDestroyFramebuffer(m_LogicalDevice, m_SwapChainFramebuffers[i], nullptr);
+		vkDestroyFramebuffer(static_cast<VkDevice>(m_LogicalDevice), m_SwapChainFramebuffers[i], nullptr);
 	}
 
-	vkFreeCommandBuffers(m_LogicalDevice, m_CommandPool, m_CommandBuffers.size(), m_CommandBuffers.data());
+	vkFreeCommandBuffers(static_cast<VkDevice>(m_LogicalDevice), m_CommandPool, m_CommandBuffers.size(), m_CommandBuffers.data());
 
-	vkDestroyPipeline(m_LogicalDevice, m_GraphicsPipeline, nullptr);
-	vkDestroyPipelineLayout(m_LogicalDevice, m_PipelineLayout, nullptr);
-	vkDestroyRenderPass(m_LogicalDevice, m_RenderPass, nullptr);
+	vkDestroyPipeline(static_cast<VkDevice>(m_LogicalDevice), m_GraphicsPipeline, nullptr);
+	vkDestroyPipelineLayout(static_cast<VkDevice>(m_LogicalDevice), m_PipelineLayout, nullptr);
+	vkDestroyRenderPass(static_cast<VkDevice>(m_LogicalDevice), m_RenderPass, nullptr);
 
 	for (size_t i = 0; i < m_SwapChainImageViews.size(); i++) {
-		vkDestroyImageView(m_LogicalDevice, m_SwapChainImageViews[i], nullptr);
+		vkDestroyImageView(static_cast<VkDevice>(m_LogicalDevice), m_SwapChainImageViews[i], nullptr);
 	}
 
-	vkDestroySwapchainKHR(m_LogicalDevice, m_SwapChain, nullptr);
+	vkDestroySwapchainKHR(static_cast<VkDevice>(m_LogicalDevice), m_SwapChain, nullptr);
 }
 
 // TODO: Flyt denne metode ind i buffer klassen
@@ -1444,7 +1484,7 @@ void HelloTriangleApplication::createTextureImage()
 	buffer_create_info.size = imageSize;
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	Buffer buffer(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	Buffer buffer(m_PhysicalDevice, static_cast<VkDevice>(m_LogicalDevice), buffer_create_info, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 	buffer.map();
 	memcpy(buffer.mappedMemory(), pixels, static_cast<size_t>(imageSize));
@@ -1464,7 +1504,7 @@ void HelloTriangleApplication::createTextureImage()
 	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	m_TextureImage = std::make_unique<Image>(m_LogicalDevice, m_PhysicalDevice, imageCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+	m_TextureImage = std::make_unique<Image>(static_cast<VkDevice>(m_LogicalDevice), m_PhysicalDevice, imageCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 	transitionImageLayout(m_TextureImage->m_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	copyBufferToImage(buffer.m_Buffer, m_TextureImage->m_Image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 
@@ -1481,7 +1521,7 @@ VkCommandBuffer HelloTriangleApplication::beginSingleTimeCommands()
 	allocInfo.commandBufferCount = 1;
 
 	VkCommandBuffer commandBuffer;
-	vkAllocateCommandBuffers(m_LogicalDevice, &allocInfo, &commandBuffer);
+	vkAllocateCommandBuffers(static_cast<VkDevice>(m_LogicalDevice), &allocInfo, &commandBuffer);
 
 	VkCommandBufferBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1503,7 +1543,7 @@ void HelloTriangleApplication::endSingleTimeCommands(VkCommandBuffer commandBuff
 	vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
 	vkQueueWaitIdle(m_GraphicsQueue);
 
-	vkFreeCommandBuffers(m_LogicalDevice, m_CommandPool, 1, &commandBuffer);
+	vkFreeCommandBuffers(static_cast<VkDevice>(m_LogicalDevice), m_CommandPool, 1, &commandBuffer);
 }
 
 void HelloTriangleApplication::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)

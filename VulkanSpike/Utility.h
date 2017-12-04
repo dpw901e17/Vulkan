@@ -2,6 +2,21 @@
 #include <vector>
 #include <fstream>
 
+struct PipelineStatisticsResult
+{
+	uint64_t inputAssemblyVertices,
+		inputAssemblyPrimitives,
+		vertexShaderInvocations,
+		geometryShaderInvocations,
+		geometryShaderPrimitives,
+		clippingInvocations,
+		clippingPrimitives,
+		fragmentShaderInvocations,
+		tesselationControlShaderPatches,
+		tesselationEvaluationShaderInvocations,
+		computeShaderInvocations;
+};
+
 static std::vector<char> readFile(const std::string& filename) {
 
 	//ate: read from the end of file
