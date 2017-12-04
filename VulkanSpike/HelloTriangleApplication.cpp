@@ -378,12 +378,11 @@ void HelloTriangleApplication::createDescriptorSet()
 	vkUpdateDescriptorSets(static_cast<VkDevice>(m_LogicalDevice), descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 }
 
-VkImageView HelloTriangleApplication::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags) const
+vk::ImageView HelloTriangleApplication::createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect_flags) const
 {
-	VkImageViewCreateInfo view_info = {};
-	view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	vk::ImageViewCreateInfo view_info = {};
 	view_info.image = image;
-	view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	view_info.viewType = vk::ImageViewType::e2D;
 	view_info.format = format;
 	view_info.subresourceRange.aspectMask = aspect_flags;
 	view_info.subresourceRange.baseMipLevel = 0;
@@ -391,11 +390,7 @@ VkImageView HelloTriangleApplication::createImageView(VkImage image, VkFormat fo
 	view_info.subresourceRange.baseArrayLayer = 0;
 	view_info.subresourceRange.layerCount = 1;
 
-	VkImageView image_view;
-
-	if (vkCreateImageView(static_cast<VkDevice>(m_LogicalDevice), &view_info, nullptr, &image_view) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create image view!");
-	}
+	vk::ImageView image_view = m_LogicalDevice.createImageView(view_info);
 
 	return image_view;
 }
@@ -459,8 +454,8 @@ void HelloTriangleApplication::createDepthResources()
 
 	vk::ImageCreateInfo imageCreateInfo = {};
 	imageCreateInfo.imageType = vk::ImageType::e2D;
-	imageCreateInfo.extent.width = static_cast<uint32_t>(m_SwapChainExtent.width);
-	imageCreateInfo.extent.height = static_cast<uint32_t>(m_SwapChainExtent.height);
+	imageCreateInfo.extent.width = m_SwapChainExtent.width;
+	imageCreateInfo.extent.height = m_SwapChainExtent.height;
 	imageCreateInfo.extent.depth = 1;
 	imageCreateInfo.mipLevels = 1;
 	imageCreateInfo.arrayLayers = 1;
@@ -560,24 +555,23 @@ void HelloTriangleApplication::createSemaphores() {
 		vkBeginCommandBuffer(m_CommandBuffers[i], &beginInfo);
 
 		//starting render pass:
-		VkRenderPassBeginInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		vk::RenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.renderPass = m_RenderPass;
-		renderPassInfo.framebuffer = static_cast<VkFramebuffer>(m_SwapChainFramebuffers[i]);
+		renderPassInfo.framebuffer = m_SwapChainFramebuffers[i];
 
-		renderPassInfo.renderArea.offset = { 0,0 };
+		renderPassInfo.renderArea.offset = vk::Offset2D{ 0,0 };
 		renderPassInfo.renderArea.extent = m_SwapChainExtent;
 
-		std::array<VkClearValue, 2> clear_values = {};
-		clear_values[0].color = {0.2f, 0.3f, 0.8f, 1.0f};
-		clear_values[1].depthStencil = {1.0f, 0};
+		std::array<vk::ClearValue, 2> clear_values = {};
+		clear_values[0].color = vk::ClearColorValue(std::array<float, 4>{0.2f, 0.3f, 0.8f, 1.0f});
+		clear_values[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
 
 		renderPassInfo.clearValueCount = clear_values.size();
 		renderPassInfo.pClearValues = clear_values.data();
 
 		vkCmdBeginRenderPass(
 			m_CommandBuffers[i],	//<-- the buffer to record to
-			&renderPassInfo,	//<-- the above info
+			reinterpret_cast<VkRenderPassBeginInfo *>(&renderPassInfo),	//<-- the above info
 			VK_SUBPASS_CONTENTS_INLINE	//<-- executed on primary buffer (as opposed to secondary buffer)
 		);
 
@@ -598,7 +592,7 @@ void HelloTriangleApplication::createSemaphores() {
 
 		for (int j = 0; j < m_Scene.renderObjects().size(); j++) {
 			uint32_t dynamic_offset = j * m_DynamicAllignment;
-			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSet, 1, &dynamic_offset);
+			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, static_cast<VkPipelineLayout>(m_PipelineLayout), 0, 1, &m_DescriptorSet, 1, &dynamic_offset);
 
 			vkCmdDrawIndexed(
 				m_CommandBuffers[i],
@@ -661,7 +655,7 @@ void HelloTriangleApplication::createSemaphores() {
 
 	// Color buffer resides as swapchain image. 
 	VkAttachmentDescription colorAttatchment = {};
-	colorAttatchment.format = m_SwapChainImageFormat;
+	colorAttatchment.format = static_cast<VkFormat>(m_SwapChainImageFormat);
 	colorAttatchment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttatchment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // Clear buffer data at load
 	colorAttatchment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // Remember buffer data after store
@@ -718,9 +712,7 @@ void HelloTriangleApplication::createSemaphores() {
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
 
-	if (vkCreateRenderPass(static_cast<VkDevice>(m_LogicalDevice), &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create render pass!");
-	}
+	m_RenderPass = m_LogicalDevice.createRenderPass(renderPassInfo);
 }
 
  void HelloTriangleApplication::createGraphicsPipeline() {
@@ -730,14 +722,13 @@ void HelloTriangleApplication::createSemaphores() {
 	auto fragShader = Shader(static_cast<VkDevice>(m_LogicalDevice), "./shaders/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	//for later reference:
-	VkPipelineShaderStageCreateInfo shaderStages[] = { vertShader.m_Info, fragShader.m_Info };
+	vk::PipelineShaderStageCreateInfo shaderStages[] = { vertShader.m_Info, fragShader.m_Info };
 
 	auto bindingDescription = Vertex::getBindingDescription();
 	auto attribute_descriptions = Vertex::getAttributeDescriptions();
 
 	// Information on how to read from vertex buffer
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.vertexAttributeDescriptionCount = attribute_descriptions.size();
 	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
@@ -752,8 +743,8 @@ void HelloTriangleApplication::createSemaphores() {
 	VkViewport viewport;
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(m_SwapChainExtent.width);
-	viewport.height = static_cast<float>(m_SwapChainExtent.height);
+	viewport.width = m_SwapChainExtent.width;
+	viewport.height = m_SwapChainExtent.height;
 	viewport.minDepth = 0.0f; // What is?
 	viewport.maxDepth = 1.0f;
 
@@ -817,42 +808,36 @@ void HelloTriangleApplication::createSemaphores() {
 	colorBlending.blendConstants[3] = 0.0f; // optional
 
 	 // For uniforms
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
 	pipelineLayoutInfo.setLayoutCount = 1;
-	pipelineLayoutInfo.pSetLayouts = &m_DescriptorSetLayout;
+	pipelineLayoutInfo.pSetLayouts = reinterpret_cast<vk::DescriptorSetLayout*>(&m_DescriptorSetLayout);
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-	if (vkCreatePipelineLayout(static_cast<VkDevice>(m_LogicalDevice), &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create pipeline layout!");
-	}
+	m_PipelineLayout = m_LogicalDevice.createPipelineLayout(pipelineLayoutInfo);
 
-	VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {};
-	depth_stencil_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	vk::PipelineDepthStencilStateCreateInfo depth_stencil_info = {};
 	depth_stencil_info.depthTestEnable = VK_TRUE;
 	depth_stencil_info.depthWriteEnable = VK_TRUE;
-	depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS;
+	depth_stencil_info.depthCompareOp = vk::CompareOp::eLess;
 	depth_stencil_info.depthBoundsTestEnable = VK_FALSE;
 	depth_stencil_info.minDepthBounds = 0.0f;
 	depth_stencil_info.maxDepthBounds = 1.0f;
 	depth_stencil_info.stencilTestEnable = VK_FALSE;
-	depth_stencil_info.front = {};
-	depth_stencil_info.back = {};
+	depth_stencil_info.front = vk::StencilOpState();
+	depth_stencil_info.back = vk::StencilOpState();
 
-	//TODO: create actual pipeline
-	VkGraphicsPipelineCreateInfo pipelineInfo = {};
-	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	vk::GraphicsPipelineCreateInfo pipelineInfo;
 	pipelineInfo.stageCount = 2;
 	pipelineInfo.pStages = shaderStages;
 
 	pipelineInfo.pVertexInputState = &vertexInputInfo;
-	pipelineInfo.pInputAssemblyState = &inputAssembly;
-	pipelineInfo.pViewportState = &viewportState;
-	pipelineInfo.pRasterizationState = &rasterizer;
-	pipelineInfo.pMultisampleState = &multisampling;
+	pipelineInfo.pInputAssemblyState = reinterpret_cast<vk::PipelineInputAssemblyStateCreateInfo *>(&inputAssembly);
+	pipelineInfo.pViewportState = reinterpret_cast<vk::PipelineViewportStateCreateInfo *>(&viewportState);
+	pipelineInfo.pRasterizationState = reinterpret_cast<vk::PipelineRasterizationStateCreateInfo *>(&rasterizer);
+	pipelineInfo.pMultisampleState = reinterpret_cast<vk::PipelineMultisampleStateCreateInfo *>(&multisampling);
 	pipelineInfo.pDepthStencilState = &depth_stencil_info;
-	pipelineInfo.pColorBlendState = &colorBlending;
+	pipelineInfo.pColorBlendState = reinterpret_cast<vk::PipelineColorBlendStateCreateInfo *>(&colorBlending);
 	pipelineInfo.pDynamicState = nullptr; //optional
 
 	pipelineInfo.layout = m_PipelineLayout;
@@ -860,14 +845,11 @@ void HelloTriangleApplication::createSemaphores() {
 	pipelineInfo.renderPass = m_RenderPass;
 	pipelineInfo.subpass = 0;
 
-	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; //optional // we do not use pipeline derivation
-	pipelineInfo.basePipelineIndex = -1; //optional //see above
-
-	VkResult result = vkCreateGraphicsPipelines(
+	 auto result = vkCreateGraphicsPipelines(
 		static_cast<VkDevice>(m_LogicalDevice),		//<-- device
 		VK_NULL_HANDLE,		//<-- pipeline cache for creation on mult. pipelines
 		1,					//<-- number of infos in array below
-		&pipelineInfo,		//<-- pipeline info array
+		reinterpret_cast<VkGraphicsPipelineCreateInfo *>(&pipelineInfo),		//<-- pipeline info array
 		nullptr,			//<-- allocator
 		&m_GraphicsPipeline	//<-- output
 	);
@@ -881,7 +863,7 @@ void HelloTriangleApplication::createSemaphores() {
 	m_SwapChainImageViews.resize(m_SwapChainImages.size());
 
 	for (size_t i = 0; i < m_SwapChainImages.size(); i++) {
-		m_SwapChainImageViews[i] = vk::ImageView(createImageView(m_SwapChainImages[i], m_SwapChainImageFormat));
+		m_SwapChainImageViews[i] = createImageView(m_SwapChainImages[i], m_SwapChainImageFormat);
 	}
 }
 
@@ -889,9 +871,9 @@ void HelloTriangleApplication::createSemaphores() {
  void HelloTriangleApplication::createSwapChain() {
 	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_PhysicalDevice);
 
-	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-	VkPresentModeKHR presentMode = static_cast<VkPresentModeKHR>(chooseSwapPresentMode(swapChainSupport.presentmodes));
-	VkExtent2D extent = chooseSwapExtend(swapChainSupport.capabilities);
+	vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+	vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentmodes);
+	m_SwapChainExtent = chooseSwapExtend(swapChainSupport.capabilities);
 
 	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
 	if (swapChainSupport.capabilities.maxImageCount > 0 &&
@@ -899,15 +881,14 @@ void HelloTriangleApplication::createSemaphores() {
 		imageCount = swapChainSupport.capabilities.maxImageCount;
 	}
 
-	VkSwapchainCreateInfoKHR createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	vk::SwapchainCreateInfoKHR createInfo = {};
 	createInfo.surface = m_Surface;
 	createInfo.minImageCount = imageCount;
 	createInfo.imageFormat = surfaceFormat.format;
 	createInfo.imageColorSpace = surfaceFormat.colorSpace;
-	createInfo.imageExtent = extent;
+	createInfo.imageExtent = m_SwapChainExtent;
 	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
 
 	QueueFamilyIndices indices = findQueueFamilies(m_PhysicalDevice);
 	uint32_t queueFamilyIndices[] = {
@@ -916,33 +897,28 @@ void HelloTriangleApplication::createSemaphores() {
 	};
 
 	if (indices.graphicsFamily != indices.presentFamily) {
-		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		createInfo.imageSharingMode = vk::SharingMode::eConcurrent;
 		createInfo.queueFamilyIndexCount = 2;
 		createInfo.pQueueFamilyIndices = queueFamilyIndices;
 	}
 	else {
-		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		createInfo.imageSharingMode = vk::SharingMode::eExclusive;
 		createInfo.queueFamilyIndexCount = 0; //optional
 		createInfo.pQueueFamilyIndices = nullptr; //optional
 	}
 
-	createInfo.preTransform = static_cast<VkSurfaceTransformFlagBitsKHR>(swapChainSupport.capabilities.currentTransform);
-	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+	createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
 	createInfo.presentMode = presentMode;
 	createInfo.clipped = VK_TRUE;
 
-	createInfo.oldSwapchain = VK_NULL_HANDLE;
+	m_SwapChain = m_LogicalDevice.createSwapchainKHR(createInfo);
 
-	if (vkCreateSwapchainKHR(static_cast<VkDevice>(m_LogicalDevice), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create swap chain! :(");
-	}
 
-	vkGetSwapchainImagesKHR(static_cast<VkDevice>(m_LogicalDevice), m_SwapChain, &imageCount, nullptr);
-	m_SwapChainImages.resize(imageCount);
-	vkGetSwapchainImagesKHR(static_cast<VkDevice>(m_LogicalDevice), m_SwapChain, &imageCount, m_SwapChainImages.data());
+	m_SwapChainImages = m_LogicalDevice.getSwapchainImagesKHR(m_SwapChain);
 
+	
 	m_SwapChainImageFormat = surfaceFormat.format;
-	m_SwapChainExtent = extent;
 }
 
  void HelloTriangleApplication::createSurface() {
@@ -953,7 +929,7 @@ void HelloTriangleApplication::createSemaphores() {
 
 	 auto CreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(m_Instance.getProcAddr("vkCreateWin32SurfaceKHR"));
 
-	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(static_cast<VkInstance>(m_Instance), &surface_info, nullptr, &m_Surface) != VK_SUCCESS) {
+	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(static_cast<VkInstance>(m_Instance), &surface_info, nullptr, reinterpret_cast<VkSurfaceKHR*>(&m_Surface)) != VK_SUCCESS) {
 		 throw std::runtime_error("failed to create window surface!");
 	 }
 }
@@ -1030,7 +1006,7 @@ void HelloTriangleApplication::createSemaphores() {
 		}
 
 		//check for present family
-		VkBool32 presentSupport = device.getSurfaceSupportKHR(i, static_cast<vk::SurfaceKHR>(m_Surface));
+		VkBool32 presentSupport = device.getSurfaceSupportKHR(i, m_Surface);
 
 		if (queueFamily.queueCount > 0 && presentSupport) {
 			indices.presentFamily = i;
@@ -1130,11 +1106,11 @@ std::vector<const char*> getRequiredExtensions()
  SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(const vk::PhysicalDevice& device) const
  {
 	SwapChainSupportDetails details;
-	details.capabilities = device.getSurfaceCapabilitiesKHR(static_cast<vk::SurfaceKHR>(m_Surface));
+	details.capabilities = device.getSurfaceCapabilitiesKHR(m_Surface);
 
-	details.formats = device.getSurfaceFormatsKHR(static_cast<vk::SurfaceKHR>(m_Surface));
+	details.formats = device.getSurfaceFormatsKHR(m_Surface);
 	
-	details.presentmodes = device.getSurfacePresentModesKHR(static_cast<vk::SurfaceKHR>(m_Surface));
+	details.presentmodes = device.getSurfacePresentModesKHR(m_Surface);
 
 	return details;
 }
@@ -1258,61 +1234,50 @@ void HelloTriangleApplication::mainLoop() {
 void HelloTriangleApplication::drawFrame() {
 
 	// Aquire image
-	uint32_t imageIndex;
-	auto result = vkAcquireNextImageKHR(
-		static_cast<VkDevice>(m_LogicalDevice), //<-- device driver
-		m_SwapChain, //<-- images to write to
-		std::numeric_limits<uint64_t>::max(), //<-- disabled timeout
-		m_ImageAvaliableSemaphore, // <--semaphore to use
-		VK_NULL_HANDLE, // <-- fenches
-		&imageIndex // <-- output. index of image fetched
-	);
-
-	if(result == VK_ERROR_OUT_OF_DATE_KHR)
+	auto imageResult = m_LogicalDevice.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), static_cast<vk::Semaphore>(m_ImageAvaliableSemaphore), vk::Fence());
+	
+	if(imageResult.result  == vk::Result::eErrorOutOfDateKHR)
 	{
 		recreateSwapChain();
 		return;
 	} 
 	
-	if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+	if(imageResult.result != vk::Result::eSuccess && imageResult.result != vk::Result::eSuboptimalKHR)
 	{
 		throw std::runtime_error("Failed to acquire swap chain image!");
 	}
 
 	//Submitting Command Buffer
-	VkSubmitInfo submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	vk::SubmitInfo submitInfo = {};
 
 	// Wait in this stage until semaphore is aquired
-	VkSemaphore  waitSemaphores[] = { m_ImageAvaliableSemaphore };
-	VkPipelineStageFlags waitStages[] = {
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-		//VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT 
+	vk::Semaphore  waitSemaphores[] = { static_cast<vk::Semaphore>(m_ImageAvaliableSemaphore) };
+	vk::PipelineStageFlags waitStages[] = {
+		vk::PipelineStageFlagBits::eColorAttachmentOutput
 	};
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex]; // Use command buffers for aquired image
+	submitInfo.pCommandBuffers = reinterpret_cast<vk::CommandBuffer*>(&m_CommandBuffers[imageResult.value]); // Use command buffers for aquired image
 
 															  // Specify which sempahore to signal once command buffers have been executed.
-	VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphore };
+	vk::Semaphore signalSemaphores[] = { static_cast<vk::Semaphore > (m_RenderFinishedSemaphore) };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
 	m_GraphicsQueue.submit({ submitInfo }, vk::Fence());
 
 	// Present the image presented
-	VkPresentInfoKHR presentInfo = {};
-	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	vk::PresentInfoKHR presentInfo = {};
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
-	VkSwapchainKHR swapChains[] = { m_SwapChain };
+	vk::SwapchainKHR swapChains[] = { m_SwapChain };
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
-	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pImageIndices = &imageResult.value;
 
 	presentInfo.pResults = nullptr; // Would contain VK result for all images if more than 1
 
@@ -1323,7 +1288,7 @@ void HelloTriangleApplication::drawFrame() {
 
 	if(m_LogicalDevice.getQueryPoolResults(
 		m_QueryPool, 
-		imageIndex, 
+		imageResult.value, 
 		1, 
 		sizeof queryResults, 
 		&queryResults, 
@@ -1355,7 +1320,7 @@ void HelloTriangleApplication::cleanup() {
 	m_LogicalDevice.destroyQueryPool(m_QueryPool);
 
 	m_LogicalDevice.destroy();
-	m_Instance.destroySurfaceKHR(vk::SurfaceKHR(m_Surface));
+	m_Instance.destroySurfaceKHR(m_Surface);
 	DestroyDebugReportCallbackEXT(static_cast<VkInstance>(m_Instance), m_Callback);
 	//clean stuff regarding instance before instance itself
 	m_Instance.destroy();
@@ -1387,14 +1352,16 @@ void HelloTriangleApplication::cleanupSwapChain()
 	m_LogicalDevice.freeCommandBuffers(static_cast<vk::CommandPool>(m_CommandPool), m_CommandBuffers.size(), reinterpret_cast<vk::CommandBuffer*>(m_CommandBuffers.data()));
 
 	vkDestroyPipeline(static_cast<VkDevice>(m_LogicalDevice), m_GraphicsPipeline, nullptr);
-	vkDestroyPipelineLayout(static_cast<VkDevice>(m_LogicalDevice), m_PipelineLayout, nullptr);
-	vkDestroyRenderPass(static_cast<VkDevice>(m_LogicalDevice), m_RenderPass, nullptr);
+
+	m_LogicalDevice.destroyPipelineLayout(m_PipelineLayout);
+
+	m_LogicalDevice.destroyRenderPass(m_RenderPass);
 
 	for (auto imageView : m_SwapChainImageViews) {
 		m_LogicalDevice.destroyImageView(imageView);
 	}
 
-	vkDestroySwapchainKHR(static_cast<VkDevice>(m_LogicalDevice), m_SwapChain, nullptr);
+	m_LogicalDevice.destroySwapchainKHR(m_SwapChain);
 }
 
 // TODO: Flyt denne metode ind i buffer klassen

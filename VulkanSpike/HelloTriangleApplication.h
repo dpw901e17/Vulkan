@@ -57,19 +57,19 @@ private:
 	vk::PhysicalDevice m_PhysicalDevice;
 	vk::Device m_LogicalDevice;
 	vk::Queue m_GraphicsQueue;
-	VkSurfaceKHR m_Surface;
+	vk::SurfaceKHR m_Surface;
 	vk::Queue m_PresentQueue;
 
-	VkSwapchainKHR m_SwapChain = VK_NULL_HANDLE;
-	std::vector<VkImage> m_SwapChainImages;
-	VkFormat m_SwapChainImageFormat;
-	VkExtent2D m_SwapChainExtent;
+	vk::SwapchainKHR m_SwapChain;
+	std::vector<vk::Image> m_SwapChainImages;
+	vk::Format m_SwapChainImageFormat;
+	vk::Extent2D m_SwapChainExtent;
 	std::vector<vk::ImageView> m_SwapChainImageViews;
 	std::vector<vk::Framebuffer> m_SwapChainFramebuffers;
 
-	VkRenderPass m_RenderPass;
+	vk::RenderPass m_RenderPass;
 	VkDescriptorSetLayout m_DescriptorSetLayout;
-	VkPipelineLayout m_PipelineLayout;
+	vk::PipelineLayout m_PipelineLayout;
 	VkPipeline m_GraphicsPipeline;
 
 	VkCommandPool m_CommandPool;
@@ -105,7 +105,7 @@ private:
 	void setupDebugCallback();
 	void createDescriptorPool();
 	void createDescriptorSet();
-	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT) const;
+	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect_flags = vk::ImageAspectFlagBits::eColor) const;
 	void createTextureSampler();
 	vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) const;
 	vk::Format findDepthFormat() const;
