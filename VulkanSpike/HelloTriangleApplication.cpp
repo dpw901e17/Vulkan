@@ -1390,7 +1390,17 @@ void HelloTriangleApplication::drawFrame() {
 
 	PipelineStatisticsResult queryResults;
 
-	m_LogicalDevice.getQueryPoolResults(m_QueryPool, imageIndex, 1, sizeof queryResults, &queryResults, sizeof uint64_t, vk::QueryResultFlagBits::eWait | vk::QueryResultFlagBits::e64);
+	if(m_LogicalDevice.getQueryPoolResults(
+		m_QueryPool, 
+		imageIndex, 
+		1, 
+		sizeof queryResults, 
+		&queryResults, 
+		sizeof uint64_t, 
+		vk::QueryResultFlagBits::eWait | vk::QueryResultFlagBits::e64) != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("Failed get the query results from the logical device");
+	}
 }
 
 void HelloTriangleApplication::cleanup() {
