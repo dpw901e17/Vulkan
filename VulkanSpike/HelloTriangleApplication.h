@@ -68,12 +68,12 @@ private:
 	std::vector<vk::Framebuffer> m_SwapChainFramebuffers;
 
 	vk::RenderPass m_RenderPass;
-	VkDescriptorSetLayout m_DescriptorSetLayout;
+	vk::DescriptorSetLayout m_DescriptorSetLayout;
 	vk::PipelineLayout m_PipelineLayout;
-	VkPipeline m_GraphicsPipeline;
+	vk::Pipeline m_GraphicsPipeline;
 
-	VkCommandPool m_CommandPool;
-	std::vector<VkCommandBuffer> m_CommandBuffers;
+	vk::CommandPool m_CommandPool;
+	std::vector<vk::CommandBuffer> m_CommandBuffers;
 
 	VkSemaphore m_ImageAvaliableSemaphore;
 	VkSemaphore m_RenderFinishedSemaphore;
@@ -85,7 +85,7 @@ private:
 	std::unique_ptr<Buffer> m_DynamicUniformBuffer;
 
 	VkDescriptorPool m_DescriptorPool;
-	VkDescriptorSet m_DescriptorSet;
+	vk::DescriptorSet m_DescriptorSet;
 	std::unique_ptr<Image> m_TextureImage;
 	VkSampler m_TextureSampler;
 	std::unique_ptr<Image> m_DepthImage;
@@ -180,12 +180,12 @@ private:
 
 	void cleanupSwapChain();
 
-	void copyBuffer(VkBuffer source, VkBuffer destination, VkDeviceSize);
+	void copyBuffer(vk::Buffer source, vk::Buffer destination, vk::DeviceSize);
 
 	void createTextureImage();
 
-	VkCommandBuffer beginSingleTimeCommands();
-	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+	vk::CommandBuffer beginSingleTimeCommands() const;
+	void endSingleTimeCommands(vk::CommandBuffer commandBuffer);
+	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+	void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height);
 };

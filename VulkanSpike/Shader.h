@@ -5,12 +5,12 @@
 class Shader
 {
 public:
-	Shader(VkDevice device, std::string file_path, VkShaderStageFlagBits stage);
+	Shader(vk::Device device, std::string file_path, vk::ShaderStageFlagBits stage);
 	~Shader();
 
-	VkPipelineShaderStageCreateInfo m_Info;
+	vk::PipelineShaderStageCreateInfo m_Info;
 private:
-	VkDevice m_Device;
-	VkShaderModule m_Module;
+	vk::Device m_Device;
+	vk::ShaderModule m_Module;
 
 };
