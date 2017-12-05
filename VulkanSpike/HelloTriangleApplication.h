@@ -6,7 +6,7 @@
 	#include <GLFW/glfw3.h>	
 #else
 	#define VK_USE_PLATFORM_WIN32_KHR
-	#include <vulkan\vulkan.h>	//<-- can be used to for off-screen rendering
+	#include <vulkan\vulkan.hpp>	//<-- can be used to for off-screen rendering
 #endif
 
 #include <vector>
@@ -18,6 +18,7 @@
 
 #include "Buffer.h"
 #include "Image.h"
+#include "Instance.h"
 
 class Scene;
 struct QueueFamilyIndices;
@@ -52,7 +53,8 @@ private:
 	} m_InstanceUniformBufferObject;
 
 	Window m_Window;
-	vk::Instance m_Instance;
+	Scene m_Scene;
+	Instance m_Instance;
 	vk::PhysicalDevice m_PhysicalDevice;
 	vk::Device m_LogicalDevice;
 	vk::Queue m_GraphicsQueue;
@@ -76,7 +78,6 @@ private:
 
 	vk::Semaphore m_ImageAvaliableSemaphore;
 	vk::Semaphore m_RenderFinishedSemaphore;
-	VkDebugReportCallbackEXT m_Callback;
 
 	std::unique_ptr<Buffer> m_VertexBuffer;
 	std::unique_ptr<Buffer> m_IndexBuffer;
@@ -88,7 +89,6 @@ private:
 	std::unique_ptr<Image> m_TextureImage;
 	vk::Sampler m_TextureSampler;
 	std::unique_ptr<Image> m_DepthImage;
-	Scene m_Scene;
 	uint32_t m_DynamicAllignment;
 	vk::QueryPool m_QueryPool;
 	TestConfiguration m_testConfiguration;
@@ -101,7 +101,6 @@ private:
 	void createIndexBuffer();
 	void createDescriptorSetLayout();
 	void createUniformBuffer();
-	void setupDebugCallback();
 	void createDescriptorPool();
 	void createDescriptorSet();
 	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect_flags = vk::ImageAspectFlagBits::eColor) const;
@@ -149,9 +148,6 @@ private:
 
 	// Determines if the physical device supports all extensions in "deviceExtensions"
 	static bool checkDeviceExtensionSupport(const vk::PhysicalDevice& device);
-
-	// Initializes Vulkan "instance" (think OpenGL context) + loads glfw extensions
-	void createInstance();
 
 	// Queries for the capabilities of the physical device, surface format, and present mode
 	SwapChainSupportDetails querySwapChainSupport(const vk::PhysicalDevice& device) const;

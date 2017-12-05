@@ -26,55 +26,6 @@
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
-const std::vector<const char*> validationLayers = {
-	"VK_LAYER_LUNARG_standard_validation"
-};
-
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
-#define GET_INSTANCE_PROC(name) (PFN_##name)vkGetInstanceProcAddr(instance, #name);
-
-VkResult CreateDebugReportCallbackEXT(VkInstance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugReportCallbackEXT* pCallback) {
-	static auto func = GET_INSTANCE_PROC(vkCreateDebugReportCallbackEXT);
-
-	if (func != nullptr) {
-		return func(instance, pCreateInfo, pAllocator, pCallback);
-	}
-	else {
-		return VK_ERROR_EXTENSION_NOT_PRESENT;
-	}
-}
-
-void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator = nullptr) {
-	static auto func = GET_INSTANCE_PROC(vkDestroyDebugReportCallbackEXT);
-	if (func != nullptr) {
-		func(instance, callback, pAllocator);
-	}
-}
-
-bool checkValidationLayerSupport() {
-	for (auto layerName : validationLayers) {
-		auto layerFound = false;
-
-		for (const auto& layerProperties : vk::enumerateInstanceLayerProperties()) {
-			if (strcmp(layerName, layerProperties.layerName) == 0) {
-				layerFound = true;
-				break;
-			}
-		}
-
-		if (!layerFound) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
 const std::vector<const char*> HelloTriangleApplication::s_DeviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
@@ -123,14 +74,15 @@ const std::vector<uint16_t>HelloTriangleApplication::s_Indices = {
 
 HelloTriangleApplication::HelloTriangleApplication(Scene scene) 
 	: m_Window(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", WIDTH, HEIGHT), 
-	  m_Scene(scene)
+	  m_Scene(scene),
+	  m_Instance()
 {
 }
 
 void HelloTriangleApplication::run()
 {
 	initVulkan();
-
+#ifndef NDEBUG
 	updateUniformBuffer();
 	updateDynamicUniformBuffer();
 
@@ -142,7 +94,7 @@ void HelloTriangleApplication::run()
 	std::cout << "Model space:  " << model_space << std::endl;
 	std::cout << "World space:  " << world_space << std::endl;
 	std::cout << "Camera space: " << camera_space << std::endl;
-
+#endif
 	mainLoop();
 	cleanup();
 }
@@ -240,41 +192,6 @@ void HelloTriangleApplication::createUniformBuffer()
 	buffer_create_info.size = buffer_size;
 	// Because no HOST_COHERENT flag we must flush the buffer when writing to it
 	m_DynamicUniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-}
-
-
-#define E4 329
-#define G4 392
-#define C5 523
-
-VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-	VkDebugReportFlagsEXT flags, 
-	VkDebugReportObjectTypeEXT objType, 
-	uint64_t obj, 
-	size_t location, 
-	int32_t code, 
-	const char* layerPrefix, 
-	const char* msg, 
-	void* userdata)
-{
-	std::cerr << "Validation Layer: " << msg << std::endl;
-	return VK_FALSE;
-}
-
-void HelloTriangleApplication::setupDebugCallback()
-{
-	if (!enableValidationLayers) return;
-
-	VkDebugReportCallbackCreateInfoEXT createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-	createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-	createInfo.pfnCallback = debugCallback;
-
-	auto result = CreateDebugReportCallbackEXT(static_cast<VkInstance>(m_Instance), &createInfo, nullptr, &m_Callback);
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error("Failed to set up debug callback!");
-	}
 }
 
 void HelloTriangleApplication::createDescriptorPool()
@@ -450,8 +367,6 @@ void HelloTriangleApplication::createQueryPool()
 
 // Initializes Vulkan
 void HelloTriangleApplication::initVulkan() {
-	createInstance();
-	setupDebugCallback();
 	createSurface();
 	pickPhysicalDevice();
 	createLogicalDevice();
@@ -780,9 +695,9 @@ void HelloTriangleApplication::createSemaphores() {
 	 surface_info.hwnd = m_Window.GetHandle();
 	 surface_info.hinstance = GetModuleHandle(nullptr);
 
-	 auto CreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(m_Instance.getProcAddr("vkCreateWin32SurfaceKHR"));
+	 auto CreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(m_Instance->getProcAddr("vkCreateWin32SurfaceKHR"));
 
-	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(static_cast<VkInstance>(m_Instance), &surface_info, nullptr, reinterpret_cast<VkSurfaceKHR*>(&m_Surface)) != VK_SUCCESS) {
+	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(static_cast<VkInstance>(*m_Instance), &surface_info, nullptr, reinterpret_cast<VkSurfaceKHR*>(&m_Surface)) != VK_SUCCESS) {
 		 throw std::runtime_error("failed to create window surface!");
 	 }
 }
@@ -825,7 +740,7 @@ void HelloTriangleApplication::createSemaphores() {
 }
 
  void HelloTriangleApplication::pickPhysicalDevice() {	
-	for (auto& device : m_Instance.enumeratePhysicalDevices()) {
+	for (auto& device : m_Instance->enumeratePhysicalDevices()) {
 		if(isDeviceSuitable(device)){
 			m_PhysicalDevice = device;
 			break;
@@ -903,47 +818,13 @@ std::vector<const char*> getRequiredExtensions()
 {
 	std::vector<const char*> extensions = {
 		VK_KHR_SURFACE_EXTENSION_NAME,
-		VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+		VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+#ifndef NDEBUG
+		VK_EXT_DEBUG_REPORT_EXTENSION_NAME
+#endif
 	};
 
-	if (enableValidationLayers) {
-		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-	}
-
 	return extensions;
-}
-
- void HelloTriangleApplication::createInstance() {
-	 if (enableValidationLayers && !checkValidationLayerSupport()) {
-		 throw std::runtime_error("validation layers requested, but not available!");
-	 }
-
-	//VkApplicationInfo is technically optional, but can be used to optimize
-	vk::ApplicationInfo appInfo = {};
-	appInfo.pApplicationName = "Hello Triangle";
-	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.pEngineName = "No Engine";	 // :(
-	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.apiVersion = VK_API_VERSION_1_0;
-
-	//not optional!
-	vk::InstanceCreateInfo createInfo = {};
-	createInfo.pApplicationInfo = &appInfo;
-
-	auto extensions = getRequiredExtensions();
-	createInfo.enabledExtensionCount = extensions.size();
-	createInfo.ppEnabledExtensionNames = extensions.data();
-
-	if (enableValidationLayers) {
-		createInfo.enabledLayerCount = validationLayers.size();
-		createInfo.ppEnabledLayerNames = validationLayers.data();
-	}
-	else
-	{
-		createInfo.enabledLayerCount = 0;
-	}
-
-	m_Instance = vk::createInstance(createInfo);
 }
 
  SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(const vk::PhysicalDevice& device) const
@@ -1158,12 +1039,9 @@ void HelloTriangleApplication::cleanup() {
 
 	m_LogicalDevice.destroyQueryPool(m_QueryPool);
 
-	this->~HelloTriangleApplication(); // HACK: Ensures that the buffers are destroyed before the vulkan instance
+	//this->~HelloTriangleApplication(); // HACK: Ensures that the buffers are destroyed before the vulkan instance
 	m_LogicalDevice.destroy();
-	m_Instance.destroySurfaceKHR(m_Surface);
-	DestroyDebugReportCallbackEXT(static_cast<VkInstance>(m_Instance), m_Callback);
-	//clean stuff regarding instance before instance itself
-	m_Instance.destroy();
+	m_Instance->destroySurfaceKHR(m_Surface);
 }
 
 void HelloTriangleApplication::recreateSwapChain()

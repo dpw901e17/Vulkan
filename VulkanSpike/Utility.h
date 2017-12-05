@@ -47,3 +47,25 @@ static uint32_t findMemoryType(vk::PhysicalDevice device, uint32_t typeFilter, v
 
 	throw std::runtime_error("failed to find suitable memory type!");
 }
+
+#define GET_INSTANCE_PROCEDURE(name) (PFN_##name)vkGetInstanceProcAddr(instance, #name);
+
+static VkResult CreateDebugReportCallbackEXT(VkInstance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugReportCallbackEXT* pCallback) {
+	static auto func = GET_INSTANCE_PROCEDURE(vkCreateDebugReportCallbackEXT);
+
+	if (func != nullptr) {
+		return func(instance, pCreateInfo, pAllocator, pCallback);
+	}
+	else {
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
+}
+
+static void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator = nullptr) {
+	static auto func = GET_INSTANCE_PROCEDURE(vkDestroyDebugReportCallbackEXT);
+	if (func != nullptr) {
+		func(instance, callback, pAllocator);
+	}
+}
+
+#undef GET_INSTANCE_PROCEDURE

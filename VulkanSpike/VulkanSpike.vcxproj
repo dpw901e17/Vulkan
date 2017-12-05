@@ -147,6 +147,7 @@
   <ItemGroup>
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="HelloTriangleApplication.cpp" />
+    <ClCompile Include="Instance.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="VulkanTriangleTest.cpp" />
@@ -155,6 +156,7 @@
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="HelloTriangleApplication.h" />
     <ClInclude Include="Image.h" />
+    <ClInclude Include="Instance.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="SwapChainSupportDetails.h" />
