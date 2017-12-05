@@ -163,7 +163,7 @@ private:
 	static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
 
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
-	VkExtent2D chooseSwapExtend(const VkSurfaceCapabilitiesKHR& capabilities) const;
+	vk::Extent2D chooseSwapExtend(const vk::SurfaceCapabilitiesKHR& capabilities) const;
 	void updateUniformBuffer();
 	void updateDynamicUniformBuffer() const;
 
