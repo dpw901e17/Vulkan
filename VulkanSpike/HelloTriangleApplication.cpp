@@ -184,14 +184,14 @@ void HelloTriangleApplication::createIndexBuffer()
 	buffer_create_info.flags = VK_SHARING_MODE_EXCLUSIVE;
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	auto buffer = Buffer(static_cast<vk::PhysicalDevice>(m_PhysicalDevice), m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+	auto buffer = Buffer(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
 	memcpy(buffer.map(), s_Indices.data(), buffer_size);
 	buffer.unmap();
 
 	buffer_create_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-	m_IndexBuffer =  std::make_unique<Buffer>(static_cast<vk::PhysicalDevice>(m_PhysicalDevice), m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eDeviceLocal);
+	m_IndexBuffer =  std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 	copyBuffer(buffer.m_Buffer, m_IndexBuffer->m_Buffer, buffer_size);
 }
@@ -290,82 +290,75 @@ void HelloTriangleApplication::setupDebugCallback()
 
 void HelloTriangleApplication::createDescriptorPool()
 {
-	std::array<VkDescriptorPoolSize, 3> pool_sizes;
-	pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	std::array<vk::DescriptorPoolSize, 3> pool_sizes;
+	pool_sizes[0].type = vk::DescriptorType::eUniformBuffer;
 	pool_sizes[0].descriptorCount = 1;
-	pool_sizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	pool_sizes[1].type = vk::DescriptorType::eUniformBufferDynamic;
 	pool_sizes[1].descriptorCount = 1;
-	pool_sizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	pool_sizes[2].type = vk::DescriptorType::eCombinedImageSampler;
 	pool_sizes[2].descriptorCount = 1;
 
-	VkDescriptorPoolCreateInfo pool_info = {};
-	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	vk::DescriptorPoolCreateInfo pool_info = {};
 	pool_info.poolSizeCount = pool_sizes.size();
 	pool_info.pPoolSizes = pool_sizes.data();
 	pool_info.maxSets = 1; // TODO: Change to two ??
 
-	if(vkCreateDescriptorPool(static_cast<VkDevice>(m_LogicalDevice), &pool_info, nullptr, &m_DescriptorPool) != VK_SUCCESS)
-	{
-		std::runtime_error("Failed to create descriptor pool!");
-	}
+	m_DescriptorPool = m_LogicalDevice.createDescriptorPool(pool_info);
 }
 
 void HelloTriangleApplication::createDescriptorSet()
 {
 	vk::DescriptorSetAllocateInfo allocInfo = {};
-	allocInfo.descriptorPool = static_cast<vk::DescriptorPool>(m_DescriptorPool);
+	allocInfo.descriptorPool = m_DescriptorPool;
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.pSetLayouts = &m_DescriptorSetLayout;
 
 	m_DescriptorSet = m_LogicalDevice.allocateDescriptorSets(allocInfo)[0]; // WARN: Hard coded 0 value
 
-	VkDescriptorBufferInfo bufferInfo;
-	bufferInfo.buffer = static_cast<VkBuffer>(m_UniformBuffer->m_Buffer);
+	vk::DescriptorBufferInfo bufferInfo;
+	bufferInfo.buffer = m_UniformBuffer->m_Buffer;
 	bufferInfo.offset = 0;
 	bufferInfo.range = m_UniformBuffer->size();
 
-	VkDescriptorBufferInfo dynamicBufferInfo;
-	dynamicBufferInfo.buffer = static_cast<VkBuffer>(m_DynamicUniformBuffer->m_Buffer);
+	vk::DescriptorBufferInfo dynamicBufferInfo;
+	dynamicBufferInfo.buffer = m_DynamicUniformBuffer->m_Buffer;
 	dynamicBufferInfo.offset = 0;
 	dynamicBufferInfo.range = m_DynamicAllignment;
 
-	VkDescriptorImageInfo image_info;
-	image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	image_info.imageView = static_cast<VkImageView>(m_TextureImage->m_ImageView);
+	vk::DescriptorImageInfo image_info;
+	image_info.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+	image_info.imageView = m_TextureImage->m_ImageView;
 	image_info.sampler = m_TextureSampler;
 
-	std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
-	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[0].dstSet = static_cast<VkDescriptorSet>(m_DescriptorSet);
+	std::array<vk::WriteDescriptorSet, 3> descriptorWrites = {};
+	descriptorWrites[0].dstSet = m_DescriptorSet;
 	descriptorWrites[0].dstBinding = 0;
 	descriptorWrites[0].dstArrayElement = 0;
-	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorWrites[0].descriptorType = vk::DescriptorType::eUniformBuffer;
 	descriptorWrites[0].descriptorCount = 1;
 	descriptorWrites[0].pBufferInfo = &bufferInfo;
 	descriptorWrites[0].pImageInfo = nullptr; 
 	descriptorWrites[0].pTexelBufferView = nullptr; 
 
-	descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[1].dstSet = static_cast<VkDescriptorSet>(m_DescriptorSet);
+	descriptorWrites[1].dstSet = m_DescriptorSet;
 	descriptorWrites[1].dstBinding = 1;
 	descriptorWrites[1].dstArrayElement = 0;
-	descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	descriptorWrites[1].descriptorType = vk::DescriptorType::eUniformBufferDynamic;
 	descriptorWrites[1].descriptorCount = 1;
 	descriptorWrites[1].pBufferInfo = &dynamicBufferInfo;
 	descriptorWrites[1].pImageInfo = nullptr; 
 	descriptorWrites[1].pTexelBufferView = nullptr; 
 
-	descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[2].dstSet = static_cast<VkDescriptorSet>(m_DescriptorSet);
+	descriptorWrites[2].dstSet = m_DescriptorSet;
 	descriptorWrites[2].dstBinding = 2;
 	descriptorWrites[2].dstArrayElement = 0;
-	descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorWrites[2].descriptorType = vk::DescriptorType::eCombinedImageSampler;
 	descriptorWrites[2].descriptorCount = 1;
 	descriptorWrites[2].pBufferInfo = nullptr;
 	descriptorWrites[2].pImageInfo = &image_info; 
 	descriptorWrites[2].pTexelBufferView = nullptr; 
 
-	vkUpdateDescriptorSets(static_cast<VkDevice>(m_LogicalDevice), descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+	m_LogicalDevice.updateDescriptorSets(descriptorWrites, {});
 }
 
 vk::ImageView HelloTriangleApplication::createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect_flags) const
@@ -387,27 +380,24 @@ vk::ImageView HelloTriangleApplication::createImageView(vk::Image image, vk::For
 
 void HelloTriangleApplication::createTextureSampler()
 {
-	VkSamplerCreateInfo sampler_create_info = {};
-	sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	sampler_create_info.magFilter = VK_FILTER_LINEAR;
-	sampler_create_info.minFilter = VK_FILTER_LINEAR;
-	sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	vk::SamplerCreateInfo sampler_create_info = {};
+	sampler_create_info.magFilter = vk::Filter::eLinear;
+	sampler_create_info.minFilter = vk::Filter::eLinear;
+	sampler_create_info.addressModeU = vk::SamplerAddressMode::eRepeat;
+	sampler_create_info.addressModeV = vk::SamplerAddressMode::eRepeat;
+	sampler_create_info.addressModeW = vk::SamplerAddressMode::eRepeat;
 	sampler_create_info.anisotropyEnable = VK_TRUE;
 	sampler_create_info.maxAnisotropy = 16;
-	sampler_create_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	sampler_create_info.borderColor = vk::BorderColor::eIntOpaqueBlack;
 	sampler_create_info.unnormalizedCoordinates = VK_FALSE;
 	sampler_create_info.compareEnable = VK_FALSE;
-	sampler_create_info.compareOp = VK_COMPARE_OP_ALWAYS;
-	sampler_create_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	sampler_create_info.compareOp = vk::CompareOp::eAlways;
+	sampler_create_info.mipmapMode = vk::SamplerMipmapMode::eLinear;
 	sampler_create_info.mipLodBias = 0.0f;
 	sampler_create_info.minLod = 0.0f;
 	sampler_create_info.maxLod = 0.0f;
 
-	if (vkCreateSampler(static_cast<VkDevice>(m_LogicalDevice), &sampler_create_info, nullptr, &m_TextureSampler) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create texture sampler!");
-	}
+	m_TextureSampler = m_LogicalDevice.createSampler(sampler_create_info);
 }
 
 vk::Format HelloTriangleApplication::findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) const
@@ -510,14 +500,10 @@ void HelloTriangleApplication::initVulkan() {
 }
 
 void HelloTriangleApplication::createSemaphores() {
-	VkSemaphoreCreateInfo semaphoreInfo = {};
-	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	vk::SemaphoreCreateInfo semaphoreInfo = {};
 
-	if (vkCreateSemaphore(static_cast<VkDevice>(m_LogicalDevice), &semaphoreInfo, nullptr, &m_ImageAvaliableSemaphore) != VK_SUCCESS ||
-		vkCreateSemaphore(static_cast<VkDevice>(m_LogicalDevice), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphore) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create semaphores!");
-	}
+	m_ImageAvaliableSemaphore = m_LogicalDevice.createSemaphore(semaphoreInfo);
+	m_RenderFinishedSemaphore = m_LogicalDevice.createSemaphore(semaphoreInfo);
 }
 
  void HelloTriangleApplication::createCommandBuffers() {
@@ -528,7 +514,7 @@ void HelloTriangleApplication::createSemaphores() {
 	vk::CommandBufferAllocateInfo allocInfo = {};
 	allocInfo.commandPool = m_CommandPool;
 	allocInfo.level = vk::CommandBufferLevel::ePrimary; //buffers can be primary (called to by user) or secondary (called to by primary buffer)
-	allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
+	allocInfo.commandBufferCount = m_CommandBuffers.size();
 
 	m_CommandBuffers = m_LogicalDevice.allocateCommandBuffers(allocInfo);
 
@@ -601,7 +587,7 @@ void HelloTriangleApplication::createSemaphores() {
 		};
 
 		vk::FramebufferCreateInfo framebufferInfo = {};
-		framebufferInfo.renderPass = static_cast<vk::RenderPass>(m_RenderPass);
+		framebufferInfo.renderPass = m_RenderPass;
 		framebufferInfo.attachmentCount = attachments.size();
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = m_SwapChainExtent.width;
@@ -617,57 +603,56 @@ void HelloTriangleApplication::createSemaphores() {
  void HelloTriangleApplication::createRenderPass() {
 
 	// Color buffer resides as swapchain image. 
-	VkAttachmentDescription colorAttatchment = {};
-	colorAttatchment.format = static_cast<VkFormat>(m_SwapChainImageFormat);
-	colorAttatchment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttatchment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // Clear buffer data at load
-	colorAttatchment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // Remember buffer data after store
-	colorAttatchment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttatchment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttatchment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttatchment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // Image is presented in swap chain
+	vk::AttachmentDescription colorAttatchment = {};
+	colorAttatchment.format = m_SwapChainImageFormat;
+	colorAttatchment.samples = vk::SampleCountFlagBits::e1;
+	colorAttatchment.loadOp = vk::AttachmentLoadOp::eClear; // Clear buffer data at load
+	colorAttatchment.storeOp = vk::AttachmentStoreOp::eStore; // Remember buffer data after store
+	colorAttatchment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+	colorAttatchment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	colorAttatchment.initialLayout = vk::ImageLayout::eUndefined;
+	colorAttatchment.finalLayout = vk::ImageLayout::ePresentSrcKHR; // Image is presented in swap chain
 
-	VkAttachmentReference colorAttatchmentRef;
+	vk::AttachmentReference colorAttatchmentRef;
 	colorAttatchmentRef.attachment = 0; // Since we only have one attatchment
-	colorAttatchmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	colorAttatchmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
 
 
 	// Depth buffer resides as swapchain image. 
-	VkAttachmentDescription depthAttatchment = {};
-	depthAttatchment.format = static_cast<VkFormat>(findDepthFormat());
-	depthAttatchment.samples = VK_SAMPLE_COUNT_1_BIT;
-	depthAttatchment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // Clear buffer data at load
-	depthAttatchment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttatchment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	depthAttatchment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttatchment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthAttatchment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL; 
+	vk::AttachmentDescription depthAttatchment = {};
+	depthAttatchment.format = findDepthFormat();
+	depthAttatchment.samples = vk::SampleCountFlagBits::e1;
+	depthAttatchment.loadOp = vk::AttachmentLoadOp::eClear; // Clear buffer data at load
+	depthAttatchment.storeOp = vk::AttachmentStoreOp::eDontCare;
+	depthAttatchment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+	depthAttatchment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	depthAttatchment.initialLayout = vk::ImageLayout::eUndefined;
+	depthAttatchment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
-	VkAttachmentReference depthAttatchmentRef;
+	vk::AttachmentReference depthAttatchmentRef;
 	depthAttatchmentRef.attachment = 1; // Since we only have one attatchment
-	depthAttatchmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	depthAttatchmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
-	VkSubpassDescription subpass = {};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	vk::SubpassDescription subpass = {};
+	subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttatchmentRef;
 	subpass.pDepthStencilAttachment = &depthAttatchmentRef;
 
 	// Handling subpass dependencies
-	VkSubpassDependency dependency = {};
+	vk::SubpassDependency dependency = {};
 	dependency.srcSubpass = VK_SUBPASS_EXTERNAL; // implicit previous subpass
 	dependency.dstSubpass = 0; // Index of our subpass
 
 							   // depend on color attatchment output stage
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
+	dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	dependency.srcAccessMask = vk::AccessFlags();
 
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
 
-	std::array<VkAttachmentDescription, 2> attachments = { colorAttatchment, depthAttatchment };
-	VkRenderPassCreateInfo renderPassInfo = {};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	std::array<vk::AttachmentDescription, 2> attachments = { colorAttatchment, depthAttatchment };
+	vk::RenderPassCreateInfo renderPassInfo = {};
 	renderPassInfo.attachmentCount = attachments.size();
 	renderPassInfo.pAttachments = attachments.data();
 	renderPassInfo.subpassCount = 1;
@@ -839,8 +824,7 @@ void HelloTriangleApplication::createSemaphores() {
 
 	QueueFamilyIndices indices = findQueueFamilies(m_PhysicalDevice);
 	uint32_t queueFamilyIndices[] = {
-		static_cast<uint32_t>(indices.graphicsFamily),
-		static_cast<uint32_t>(indices.presentFamily)
+		indices.graphicsFamily, indices.presentFamily
 	};
 
 	if (indices.graphicsFamily != indices.presentFamily) {
@@ -907,12 +891,12 @@ void HelloTriangleApplication::createSemaphores() {
 	VkDeviceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+	createInfo.queueCreateInfoCount = queueCreateInfos.size();
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
 	createInfo.pEnabledFeatures = &deviceFeatures;
 
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(s_DeviceExtensions.size());
+	createInfo.enabledExtensionCount = s_DeviceExtensions.size();
 	createInfo.ppEnabledExtensionNames = s_DeviceExtensions.data();
 
 	createInfo.enabledLayerCount = 0;
@@ -1175,13 +1159,13 @@ void HelloTriangleApplication::mainLoop() {
 			drawFrame();
 		}
 	}
-	vkDeviceWaitIdle(static_cast<VkDevice>(m_LogicalDevice));
+	m_LogicalDevice.waitIdle();
 }
 
 void HelloTriangleApplication::drawFrame() {
 
 	// Aquire image
-	auto imageResult = m_LogicalDevice.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), static_cast<vk::Semaphore>(m_ImageAvaliableSemaphore), vk::Fence());
+	auto imageResult = m_LogicalDevice.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvaliableSemaphore, vk::Fence());
 	
 	if(imageResult.result  == vk::Result::eErrorOutOfDateKHR)
 	{
@@ -1198,7 +1182,7 @@ void HelloTriangleApplication::drawFrame() {
 	vk::SubmitInfo submitInfo = {};
 
 	// Wait in this stage until semaphore is aquired
-	vk::Semaphore  waitSemaphores[] = { static_cast<vk::Semaphore>(m_ImageAvaliableSemaphore) };
+	vk::Semaphore  waitSemaphores[] = { m_ImageAvaliableSemaphore };
 	vk::PipelineStageFlags waitStages[] = {
 		vk::PipelineStageFlagBits::eColorAttachmentOutput
 	};
@@ -1207,10 +1191,10 @@ void HelloTriangleApplication::drawFrame() {
 	submitInfo.pWaitDstStageMask = waitStages;
 
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = reinterpret_cast<vk::CommandBuffer*>(&m_CommandBuffers[imageResult.value]); // Use command buffers for aquired image
+	submitInfo.pCommandBuffers = &m_CommandBuffers[imageResult.value]; // Use command buffers for aquired image
 
 															  // Specify which sempahore to signal once command buffers have been executed.
-	vk::Semaphore signalSemaphores[] = { static_cast<vk::Semaphore > (m_RenderFinishedSemaphore) };
+	vk::Semaphore signalSemaphores[] = { m_RenderFinishedSemaphore };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -1249,23 +1233,20 @@ void HelloTriangleApplication::drawFrame() {
 void HelloTriangleApplication::cleanup() {
 	cleanupSwapChain();
 
-	this->~HelloTriangleApplication(); // HACK: Ensures that the buffers are destroyed before the vulkan instance
-
 	_aligned_free(m_InstanceUniformBufferObject.model);
 
-	vkDestroySampler(static_cast<VkDevice>(m_LogicalDevice), m_TextureSampler, nullptr);
-
-	vkDestroyDescriptorPool(static_cast<VkDevice>(m_LogicalDevice), m_DescriptorPool, nullptr);
-
+	m_LogicalDevice.destroySampler(m_TextureSampler);
+	m_LogicalDevice.destroyDescriptorPool(m_DescriptorPool);
 	m_LogicalDevice.destroyDescriptorSetLayout(m_DescriptorSetLayout);
 
-	vkDestroySemaphore(static_cast<VkDevice>(m_LogicalDevice), m_RenderFinishedSemaphore, nullptr);
-	vkDestroySemaphore(static_cast<VkDevice>(m_LogicalDevice), m_ImageAvaliableSemaphore, nullptr);
+	m_LogicalDevice.destroySemaphore(m_RenderFinishedSemaphore);
+	m_LogicalDevice.destroySemaphore(m_ImageAvaliableSemaphore);
 
 	m_LogicalDevice.destroyCommandPool(m_CommandPool);
 
 	m_LogicalDevice.destroyQueryPool(m_QueryPool);
 
+	this->~HelloTriangleApplication(); // HACK: Ensures that the buffers are destroyed before the vulkan instance
 	m_LogicalDevice.destroy();
 	m_Instance.destroySurfaceKHR(m_Surface);
 	DestroyDebugReportCallbackEXT(static_cast<VkInstance>(m_Instance), m_Callback);
@@ -1275,7 +1256,7 @@ void HelloTriangleApplication::cleanup() {
 
 void HelloTriangleApplication::recreateSwapChain()
 {
-	vkDeviceWaitIdle(static_cast<VkDevice>(m_LogicalDevice));
+	m_LogicalDevice.waitIdle();
 
 	cleanupSwapChain();
 
@@ -1296,7 +1277,7 @@ void HelloTriangleApplication::cleanupSwapChain()
 		m_LogicalDevice.destroyFramebuffer(frameBuffer);
 	}
 
-	m_LogicalDevice.freeCommandBuffers(static_cast<vk::CommandPool>(m_CommandPool), m_CommandBuffers.size(), reinterpret_cast<vk::CommandBuffer*>(m_CommandBuffers.data()));
+	m_LogicalDevice.freeCommandBuffers(m_CommandPool, m_CommandBuffers);
 
 	m_LogicalDevice.destroyPipeline(m_GraphicsPipeline);
 
@@ -1343,7 +1324,7 @@ void HelloTriangleApplication::createTextureImage()
 
 	Buffer buffer(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
 
-	memcpy(buffer.map(), pixels, static_cast<size_t>(imageSize));
+	memcpy(buffer.map(), pixels, imageSize);
 	buffer.unmap();
 
 	stbi_image_free(pixels);

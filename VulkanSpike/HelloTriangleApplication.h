@@ -17,7 +17,6 @@
 #include <glm/glm.hpp>
 
 #include "Buffer.h"
-#include <iostream>
 #include "Image.h"
 
 class Scene;
@@ -75,8 +74,8 @@ private:
 	vk::CommandPool m_CommandPool;
 	std::vector<vk::CommandBuffer> m_CommandBuffers;
 
-	VkSemaphore m_ImageAvaliableSemaphore;
-	VkSemaphore m_RenderFinishedSemaphore;
+	vk::Semaphore m_ImageAvaliableSemaphore;
+	vk::Semaphore m_RenderFinishedSemaphore;
 	VkDebugReportCallbackEXT m_Callback;
 
 	std::unique_ptr<Buffer> m_VertexBuffer;
@@ -84,10 +83,10 @@ private:
 	std::unique_ptr<Buffer> m_UniformBuffer;
 	std::unique_ptr<Buffer> m_DynamicUniformBuffer;
 
-	VkDescriptorPool m_DescriptorPool;
+	vk::DescriptorPool m_DescriptorPool;
 	vk::DescriptorSet m_DescriptorSet;
 	std::unique_ptr<Image> m_TextureImage;
-	VkSampler m_TextureSampler;
+	vk::Sampler m_TextureSampler;
 	std::unique_ptr<Image> m_DepthImage;
 	Scene m_Scene;
 	uint32_t m_DynamicAllignment;
