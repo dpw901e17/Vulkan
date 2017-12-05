@@ -125,7 +125,6 @@ HelloTriangleApplication::HelloTriangleApplication(Scene scene)
 	: m_Window(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", WIDTH, HEIGHT), 
 	  m_Scene(scene)
 {
-	m_Window.GetHandle(); // Actually intializes the window
 }
 
 void HelloTriangleApplication::run()
