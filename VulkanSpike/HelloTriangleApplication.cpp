@@ -5,8 +5,6 @@
 #define GLM_FORCE_RADIANS
 #define STB_IMAGE_IMPLEMENTATION
 
-#include <windows.h>	// For Beeps included early for not redifining max
-
 #include <algorithm>
 #include <chrono>
 #include <glm/glm.hpp>
@@ -14,7 +12,6 @@
 #include <iostream>
 #include <set>
 #include <stb/stb_image.h>
-#include <thread>		// For non blocking beeps
 #include <vulkan/vulkan.h>
 
 #include "SwapChainSupportDetails.h"
@@ -31,32 +28,32 @@ const std::vector<const char*> HelloTriangleApplication::s_DeviceExtensions = {
 };
 
 const std::vector<Vertex> HelloTriangleApplication::s_Vertices = {
-	// Top
+	
 	{ { -0.5f, -0.5,  0.5f },{ 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f }}, 
 	{ {  0.5f, -0.5,  0.5f },{ 1.0f, 0.0f, 1.0f }, { 0.0f, 0.0f }}, 
 	{ {  0.5f,  0.5,  0.5f },{ 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f }},  
 	{ { -0.5f,  0.5,  0.5f },{ 0.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }}, 
-	// Left
+	
 	{ { -0.5f, -0.5, -0.5f },{ 0.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
 	{ { -0.5f, -0.5,  0.5f },{ 0.0f, 0.0f, 1.0f },{ 0.0f, 0.0f } },
 	{ { -0.5f,  0.5,  0.5f },{ 0.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } },
 	{ { -0.5f,  0.5, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 1.0f } },
-	// Front
+	
 	{ { -0.5f,  0.5, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
 	{ { -0.5f,  0.5,  0.5f },{ 0.0f, 1.0f, 1.0f },{ 0.0f, 0.0f } },
 	{ {  0.5f,  0.5,  0.5f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } } ,
 	{ {  0.5f,  0.5, -0.5f },{ 1.0f, 1.0f, 0.0f },{ 1.0f, 1.0f } },
-	// Right
+	
 	{ {  0.5f,  0.5, -0.5f },{ 1.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
 	{ {  0.5f,  0.5,  0.5f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f } },
 	{ {  0.5f, -0.5,  0.5f },{ 1.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
 	{ {  0.5f, -0.5, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 1.0f, 1.0f } },
-	// Back
+	
 	{ {  0.5f, -0.5, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
 	{ {  0.5f, -0.5,  0.5f },{ 1.0f, 0.0f, 1.0f },{ 0.0f, 0.0f } },
 	{ { -0.5f, -0.5,  0.5f },{ 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
 	{ { -0.5f, -0.5, -0.5f },{ 0.0f, 0.0f, 0.0f },{ 1.0f, 1.0f } },
-	// Bottom 
+	
 	{ { -0.5f,  0.5, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 1.0f } },
 	{ {  0.5f,  0.5, -0.5f },{ 1.0f, 1.0f, 0.0f },{ 0.0f, 1.0f } },
 	{ {  0.5f, -0.5, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 0.0f } },
@@ -64,12 +61,12 @@ const std::vector<Vertex> HelloTriangleApplication::s_Vertices = {
 };
 
 const std::vector<uint16_t>HelloTriangleApplication::s_Indices = {
-	4 * 0 + 0, 4 * 0 + 1, 4 * 0 + 2, 4 * 0 + 2, 4 * 0 + 3, 4 * 0 + 0, // Top
-	4 * 1 + 0, 4 * 1 + 1, 4 * 1 + 2, 4 * 1 + 2, 4 * 1 + 3, 4 * 1 + 0, // Left
-	4 * 2 + 0, 4 * 2 + 1, 4 * 2 + 2, 4 * 2 + 2, 4 * 2 + 3, 4 * 2 + 0, // Front
-	4 * 3 + 0, 4 * 3 + 1, 4 * 3 + 2, 4 * 3 + 2, 4 * 3 + 3, 4 * 3 + 0, // Right
-	4 * 4 + 0, 4 * 4 + 1, 4 * 4 + 2, 4 * 4 + 2, 4 * 4 + 3, 4 * 4 + 0, // Back
-	4 * 5 + 0, 4 * 5 + 1, 4 * 5 + 2, 4 * 5 + 2, 4 * 5 + 3, 4 * 5 + 0  // Bottom
+	4 * 0 + 0, 4 * 0 + 1, 4 * 0 + 2, 4 * 0 + 2, 4 * 0 + 3, 4 * 0 + 0, 
+	4 * 1 + 0, 4 * 1 + 1, 4 * 1 + 2, 4 * 1 + 2, 4 * 1 + 3, 4 * 1 + 0, 
+	4 * 2 + 0, 4 * 2 + 1, 4 * 2 + 2, 4 * 2 + 2, 4 * 2 + 3, 4 * 2 + 0, 
+	4 * 3 + 0, 4 * 3 + 1, 4 * 3 + 2, 4 * 3 + 2, 4 * 3 + 3, 4 * 3 + 0, 
+	4 * 4 + 0, 4 * 4 + 1, 4 * 4 + 2, 4 * 4 + 2, 4 * 4 + 3, 4 * 4 + 0, 
+	4 * 5 + 0, 4 * 5 + 1, 4 * 5 + 2, 4 * 5 + 2, 4 * 5 + 3, 4 * 5 + 0  
 };
 
 HelloTriangleApplication::HelloTriangleApplication(Scene scene) 
@@ -139,12 +136,6 @@ void HelloTriangleApplication::createIndexBuffer()
 
 void HelloTriangleApplication::createDescriptorSetLayout()
 {
-	/*
-	 * Layout bindings
-	 * 0 : uniform buffer object layout
-	 * 1 : dynamic uniform buffer object layout
-	 * 2 : sampler layout
-	 */
 	std::array<vk::DescriptorSetLayoutBinding, 3> bindings = {};
 
 	bindings[0].binding = 0;
@@ -190,7 +181,7 @@ void HelloTriangleApplication::createUniformBuffer()
 	buffer_size = m_Scene.renderObjects().size() * m_DynamicAllignment;
 	m_InstanceUniformBufferObject.model = static_cast<glm::mat4 *>(_aligned_malloc(buffer_size, m_DynamicAllignment));
 	buffer_create_info.size = buffer_size;
-	// Because no HOST_COHERENT flag we must flush the buffer when writing to it
+
 	m_DynamicUniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 }
 
@@ -207,7 +198,7 @@ void HelloTriangleApplication::createDescriptorPool()
 	vk::DescriptorPoolCreateInfo pool_info = {};
 	pool_info.poolSizeCount = pool_sizes.size();
 	pool_info.pPoolSizes = pool_sizes.data();
-	pool_info.maxSets = 1; // TODO: Change to two ??
+	pool_info.maxSets = 1;
 
 	m_DescriptorPool = m_LogicalDevice.createDescriptorPool(pool_info);
 }
@@ -219,7 +210,7 @@ void HelloTriangleApplication::createDescriptorSet()
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.pSetLayouts = &m_DescriptorSetLayout;
 
-	m_DescriptorSet = m_LogicalDevice.allocateDescriptorSets(allocInfo)[0]; // WARN: Hard coded 0 value
+	m_DescriptorSet = m_LogicalDevice.allocateDescriptorSets(allocInfo)[0];
 
 	vk::DescriptorBufferInfo bufferInfo;
 	bufferInfo.buffer = m_UniformBuffer->m_Buffer;
@@ -361,11 +352,9 @@ void HelloTriangleApplication::createQueryPool()
 			vk::QueryPipelineStatisticFlagBits::eTessellationEvaluationShaderInvocations |
 			vk::QueryPipelineStatisticFlagBits::eVertexShaderInvocations);
 
-	// Throws exception on fail
 	m_QueryPool = m_LogicalDevice.createQueryPool(query_pool_create_info);
 }
 
-// Initializes Vulkan
 void HelloTriangleApplication::initVulkan() {
 	createSurface();
 	pickPhysicalDevice();
@@ -400,16 +389,13 @@ void HelloTriangleApplication::createSemaphores() {
  void HelloTriangleApplication::createCommandBuffers() {
 	m_CommandBuffers.resize(m_SwapChainFramebuffers.size());
 
-	//allocate room for buffers in command pool:
-
 	vk::CommandBufferAllocateInfo allocInfo = {};
 	allocInfo.commandPool = m_CommandPool;
-	allocInfo.level = vk::CommandBufferLevel::ePrimary; //buffers can be primary (called to by user) or secondary (called to by primary buffer)
+	allocInfo.level = vk::CommandBufferLevel::ePrimary;
 	allocInfo.commandBufferCount = m_CommandBuffers.size();
 
 	m_CommandBuffers = m_LogicalDevice.allocateCommandBuffers(allocInfo);
 
-	//begin recording process:
 	for (size_t i = 0; i < m_CommandBuffers.size(); i++) {
 		auto& command_buffer = m_CommandBuffers[i];
 
@@ -418,7 +404,6 @@ void HelloTriangleApplication::createSemaphores() {
 
 		command_buffer.begin(beginInfo);
 
-		//starting render pass:
 		vk::RenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.renderPass = m_RenderPass;
 		renderPassInfo.framebuffer = m_SwapChainFramebuffers[i];
@@ -438,9 +423,9 @@ void HelloTriangleApplication::createSemaphores() {
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
 
 		command_buffer.bindVertexBuffers(
-			0,								// index of first buffer
-			{ m_VertexBuffer->m_Buffer },	// Array of buffers
-			{ 0 });							// Array of offsets into the buffers
+			0,								
+			{ m_VertexBuffer->m_Buffer },	
+			{ 0 });							
 		command_buffer.bindIndexBuffer(m_IndexBuffer->m_Buffer, 0, vk::IndexType::eUint16);
 
 		command_buffer.beginQuery(m_QueryPool, i, vk::QueryControlFlags());
@@ -463,7 +448,7 @@ void HelloTriangleApplication::createSemaphores() {
 
 	vk::CommandPoolCreateInfo poolInfo = {};
 	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
-	poolInfo.flags = vk::CommandPoolCreateFlags(); //optional about rerecording strategy of cmd buffer(s)
+	poolInfo.flags = vk::CommandPoolCreateFlags(); 
 
 	m_CommandPool = m_LogicalDevice.createCommandPool(poolInfo);
 }
@@ -486,14 +471,10 @@ void HelloTriangleApplication::createSemaphores() {
 		framebufferInfo.layers = 1;
 
 		m_SwapChainFramebuffers[i] = m_LogicalDevice.createFramebuffer(framebufferInfo);
-
-
 	}
 }
 
- void HelloTriangleApplication::createRenderPass() {
-
-	// Color buffer resides as swapchain image. 
+ void HelloTriangleApplication::createRenderPass() { 
 	vk::AttachmentDescription colorAttatchment;
 	colorAttatchment.setFormat(m_SwapChainImageFormat)
 		.setLoadOp(vk::AttachmentLoadOp::eClear)
@@ -503,11 +484,9 @@ void HelloTriangleApplication::createSemaphores() {
 
 	vk::AttachmentReference colorAttatchmentRef(0, vk::ImageLayout::eColorAttachmentOptimal);
 
-
-	// Depth buffer resides as swapchain image. 
 	vk::AttachmentDescription depthAttatchment;
 	depthAttatchment.setFormat(findDepthFormat())
-		.setLoadOp(vk::AttachmentLoadOp::eClear) // Clear buffer data at load
+		.setLoadOp(vk::AttachmentLoadOp::eClear)
 		.setStoreOp(vk::AttachmentStoreOp::eDontCare)
 		.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
 		.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
@@ -521,7 +500,6 @@ void HelloTriangleApplication::createSemaphores() {
 		.setPColorAttachments(&colorAttatchmentRef)
 		.setPDepthStencilAttachment(&depthAttatchmentRef);
 
-	// Handling subpass dependencies
 	vk::SubpassDependency dependency(VK_SUBPASS_EXTERNAL);
 	dependency.setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
 		.setSrcAccessMask(vk::AccessFlags())
@@ -543,17 +521,14 @@ void HelloTriangleApplication::createSemaphores() {
 
  void HelloTriangleApplication::createGraphicsPipeline() {
 
-	//get byte code of shaders
 	auto vertShader = Shader(m_LogicalDevice, "./shaders/vert.spv", vk::ShaderStageFlagBits::eVertex);
 	auto fragShader = Shader(m_LogicalDevice, "./shaders/frag.spv", vk::ShaderStageFlagBits::eFragment);
 
-	//for later reference:
 	vk::PipelineShaderStageCreateInfo shaderStages[] = { vertShader.m_Info, fragShader.m_Info };
 
 	auto bindingDescription = Vertex::getBindingDescription();
 	auto attribute_descriptions = Vertex::getAttributeDescriptions();
 
-	// Information on how to read from vertex buffer
 	vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
 	vertexInputInfo.setVertexBindingDescriptionCount(1)
 		.setPVertexBindingDescriptions(&bindingDescription)
@@ -563,13 +538,10 @@ void HelloTriangleApplication::createSemaphores() {
 	vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
 	inputAssembly.setTopology(vk::PrimitiveTopology::eTriangleList);
 
-	// Creating a viewport to render to
 	vk::Viewport viewport(0.0f, 0.0f, m_SwapChainExtent.width, m_SwapChainExtent.height, 0.0f, 1.0f);
 
-	// Scissor rectangle. Defines image cropping of viewport.
 	vk::Rect2D scissor({ 0, 0 }, m_SwapChainExtent);
 
-	// Combine viewport and scissor into a viewport state
 	vk::PipelineViewportStateCreateInfo viewportState;
 	viewportState.setViewportCount(1)
 		.setPViewports(&viewport)
@@ -582,24 +554,20 @@ void HelloTriangleApplication::createSemaphores() {
 		.setCullMode(vk::CullModeFlagBits::eBack)
 		.setFrontFace(vk::FrontFace::eCounterClockwise);
 
-	// Multisampling. Not in use but works to do anti aliasing
 	vk::PipelineMultisampleStateCreateInfo multisampling = {};
 	multisampling.setRasterizationSamples(vk::SampleCountFlagBits::e1)
-		.setMinSampleShading(1.0f); //optional
+		.setMinSampleShading(1.0f);
 
-	//Color blending
 	vk::PipelineColorBlendAttachmentState colorBlendAttatchment;
 	colorBlendAttatchment.setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA)
-		.setSrcColorBlendFactor(vk::BlendFactor::eOne)  // optional
-		.setSrcAlphaBlendFactor(vk::BlendFactor::eOne); // optional
+		.setSrcColorBlendFactor(vk::BlendFactor::eOne)  
+		.setSrcAlphaBlendFactor(vk::BlendFactor::eOne); 
 
-	//Global Color Blending
 	vk::PipelineColorBlendStateCreateInfo colorBlending;
-	colorBlending.setLogicOp(vk::LogicOp::eCopy)  // optional
+	colorBlending.setLogicOp(vk::LogicOp::eCopy) 
 		.setAttachmentCount(1)
 		.setPAttachments(&colorBlendAttatchment);
 
-	 // For uniforms
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
 	pipelineLayoutInfo.setSetLayoutCount(1)
 		.setPSetLayouts(&m_DescriptorSetLayout);
@@ -636,7 +604,6 @@ void HelloTriangleApplication::createSemaphores() {
 	}
 }
 
-//  Creates and sets the swapchain + sets "swapChainImageFormat" and "swapChainExtent".
  void HelloTriangleApplication::createSwapChain() {
 	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_PhysicalDevice);
 
@@ -671,8 +638,8 @@ void HelloTriangleApplication::createSemaphores() {
 	}
 	else {
 		createInfo.imageSharingMode = vk::SharingMode::eExclusive;
-		createInfo.queueFamilyIndexCount = 0; //optional
-		createInfo.pQueueFamilyIndices = nullptr; //optional
+		createInfo.queueFamilyIndexCount = 0; 
+		createInfo.pQueueFamilyIndices = nullptr; 
 	}
 
 	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
@@ -681,11 +648,7 @@ void HelloTriangleApplication::createSemaphores() {
 	createInfo.clipped = VK_TRUE;
 
 	m_SwapChain = m_LogicalDevice.createSwapchainKHR(createInfo);
-
-
 	m_SwapChainImages = m_LogicalDevice.getSwapchainImagesKHR(m_SwapChain);
-
-	
 	m_SwapChainImageFormat = surfaceFormat.format;
 }
 
@@ -709,12 +672,11 @@ void HelloTriangleApplication::createSemaphores() {
 	std::set<int> uniqueQueueFamilies = { indices.graphicsFamily, indices.presentFamily };
 	float queuePriorty = 1.0f;
 
-	// Runs over each family and makes a createinfo object for them
 	for (int queueFamily : uniqueQueueFamilies) {
 		vk::DeviceQueueCreateInfo queueCreateInfo = {};
 		queueCreateInfo.queueFamilyIndex = queueFamily;
 		queueCreateInfo.queueCount = 1;
-		queueCreateInfo.pQueuePriorities = &queuePriorty; // Priority required even with 1 queue
+		queueCreateInfo.pQueuePriorities = &queuePriorty;
 		queueCreateInfos.push_back(queueCreateInfo);
 	}
 
@@ -723,7 +685,6 @@ void HelloTriangleApplication::createSemaphores() {
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.pipelineStatisticsQuery = VK_TRUE;
 
-												  // Creating VkDeviceCreateInfo object
 	vk::DeviceCreateInfo createInfo = {};
 	createInfo.queueCreateInfoCount = queueCreateInfos.size();
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
@@ -734,7 +695,6 @@ void HelloTriangleApplication::createSemaphores() {
 
 	m_LogicalDevice = m_PhysicalDevice.createDevice(createInfo);
 
-	// Get handle to queue in the logicalDevice
 	m_GraphicsQueue = m_LogicalDevice.getQueue(indices.graphicsFamily, 0);
 	m_PresentQueue = m_LogicalDevice.getQueue(indices.presentFamily, 0);
 }
@@ -762,16 +722,13 @@ void HelloTriangleApplication::createSemaphores() {
 	for (int i = 0; i < queueFamilies.size(); i++) {
 		auto queueFamily = queueFamilies.at(i);
 
-		//check for graphics family
 		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
 			indices.graphicsFamily = i;
 		}
 
-		//check for present family
 		if (queueFamily.queueCount > 0 && device.getSurfaceSupportKHR(i, m_Surface)) {
 			indices.presentFamily = i;
 		}
-
 
 		if (indices.isComplete()) {
 			break;
@@ -841,12 +798,10 @@ std::vector<const char*> getRequiredExtensions()
 
  vk::SurfaceFormatKHR HelloTriangleApplication::chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
 
-	//In the case the surface has no preference
 	if (availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined) {
 		return{ vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear};
 	}
 
-	// If we're not allowed to freely choose a format  
 	for (const auto& availableFormat : availableFormats) {
 		if (availableFormat.format == vk::Format::eB8G8R8A8Unorm &&
 			availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
@@ -911,7 +866,7 @@ void HelloTriangleApplication::updateUniformBuffer()
 		m_Window.aspectRatio(),
 		m_Scene.camera().Near(),
 		m_Scene.camera().Far());
-	m_UniformBufferObject.projection[1][1] *= -1; // flip up and down
+	m_UniformBufferObject.projection[1][1] *= -1; 
 
 	memcpy(m_UniformBuffer->map(), &m_UniformBufferObject, sizeof(m_UniformBufferObject));
 	m_UniformBuffer->unmap();
@@ -956,8 +911,6 @@ void HelloTriangleApplication::mainLoop() {
 }
 
 void HelloTriangleApplication::drawFrame() {
-
-	// Aquire image
 	auto imageResult = m_LogicalDevice.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvaliableSemaphore, vk::Fence());
 	
 	if(imageResult.result  == vk::Result::eErrorOutOfDateKHR)
@@ -971,10 +924,8 @@ void HelloTriangleApplication::drawFrame() {
 		throw std::runtime_error("Failed to acquire swap chain image!");
 	}
 
-	//Submitting Command Buffer
 	vk::SubmitInfo submitInfo = {};
 
-	// Wait in this stage until semaphore is aquired
 	vk::Semaphore  waitSemaphores[] = { m_ImageAvaliableSemaphore };
 	vk::PipelineStageFlags waitStages[] = {
 		vk::PipelineStageFlagBits::eColorAttachmentOutput
@@ -984,16 +935,14 @@ void HelloTriangleApplication::drawFrame() {
 	submitInfo.pWaitDstStageMask = waitStages;
 
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &m_CommandBuffers[imageResult.value]; // Use command buffers for aquired image
+	submitInfo.pCommandBuffers = &m_CommandBuffers[imageResult.value]; 
 
-															  // Specify which sempahore to signal once command buffers have been executed.
 	vk::Semaphore signalSemaphores[] = { m_RenderFinishedSemaphore };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
 	m_GraphicsQueue.submit({ submitInfo }, vk::Fence());
 
-	// Present the image presented
 	vk::PresentInfoKHR presentInfo = {};
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
@@ -1003,7 +952,7 @@ void HelloTriangleApplication::drawFrame() {
 	presentInfo.pSwapchains = swapChains;
 	presentInfo.pImageIndices = &imageResult.value;
 
-	presentInfo.pResults = nullptr; // Would contain VK result for all images if more than 1
+	presentInfo.pResults = nullptr; 
 
 	m_PresentQueue.presentKHR(presentInfo);
 	m_PresentQueue.waitIdle();
@@ -1039,7 +988,6 @@ void HelloTriangleApplication::cleanup() {
 
 	m_LogicalDevice.destroyQueryPool(m_QueryPool);
 
-	//this->~HelloTriangleApplication(); // HACK: Ensures that the buffers are destroyed before the vulkan instance
 	m_LogicalDevice.destroy();
 	m_Instance->destroySurfaceKHR(m_Surface);
 }
@@ -1082,14 +1030,13 @@ void HelloTriangleApplication::cleanupSwapChain()
 	m_LogicalDevice.destroySwapchainKHR(m_SwapChain);
 }
 
-// TODO: Flyt denne metode ind i buffer klassen
 void HelloTriangleApplication::copyBuffer(vk::Buffer source, vk::Buffer destination, vk::DeviceSize size)
 {
 	auto commandBuffer = beginSingleTimeCommands();
 
 	vk::BufferCopy copyRegion;
-	copyRegion.srcOffset = 0; // Optional
-	copyRegion.dstOffset = 0; // Optional
+	copyRegion.srcOffset = 0; 
+	copyRegion.dstOffset = 0; 
 	copyRegion.size = size;
 
 	commandBuffer.copyBuffer(source, destination, { copyRegion });
@@ -1131,7 +1078,6 @@ void HelloTriangleApplication::createTextureImage()
 	transitionImageLayout(m_TextureImage->m_Image, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 	copyBufferToImage(buffer.m_Buffer, m_TextureImage->m_Image, texWidth, texHeight);
 
-	//prepare to use image in shader:
 	transitionImageLayout(m_TextureImage->m_Image, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
@@ -1170,7 +1116,6 @@ void HelloTriangleApplication::transitionImageLayout(vk::Image image, vk::Format
 
 	vk::ImageAspectFlags aspect_mask = vk::ImageAspectFlagBits::eColor;
 
-	// Special case for depth buffer image
 	if(newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal)
 	{
 		aspect_mask = vk::ImageAspectFlagBits::eDepth;

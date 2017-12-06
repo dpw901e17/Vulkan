@@ -18,8 +18,6 @@ struct PipelineStatisticsResult
 };
 
 static std::vector<char> readFile(const std::string& filename) {
-
-	//ate: read from the end of file
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
 	if (!file.is_open()) {

@@ -1,4 +1,5 @@
 #include "Shader.h"
+#include "Utility.h"
 
 vk::ShaderModule createShaderModule(vk::Device device, const std::vector<char>& source_code)
 {

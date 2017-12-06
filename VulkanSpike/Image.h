@@ -10,7 +10,6 @@ public:
 	{
 		m_Image = device.createImage(imageCreateInfo);
 
-		//copy to buffer
 		VkMemoryRequirements memRequirements = device.getImageMemoryRequirements(m_Image);
 
 		vk::MemoryAllocateInfo allocInfo = {};

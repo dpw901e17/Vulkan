@@ -52,10 +52,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Instance::debugCallback(
 
 Instance::Instance()
 {
-	//VkApplicationInfo is technically optional, but can be used to optimize
 	vk::ApplicationInfo application_info("Hello Triangle", VK_MAKE_VERSION(1, 0, 0), "No Engine", VK_MAKE_VERSION(1, 0, 0), VK_API_VERSION_1_0);
 
-	//not optional!
 	vk::InstanceCreateInfo instance_info;
 	instance_info.setPApplicationInfo(&application_info)
 		.setEnabledExtensionCount(s_RequiredExtensions.size())

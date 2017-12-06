@@ -5,7 +5,6 @@
 #include "../scene-window-system/Scene.h"
 
 
-// Called from main(). Runs this example.
 int runVulkanTest() {
 	Scene scene(Camera::Default(), 
 	{ 

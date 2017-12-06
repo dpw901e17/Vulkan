@@ -1,13 +1,7 @@
 #pragma once
 
-#if false
-	#define GLFW_INCLUDE_VULKAN	//<-- makes sure glfw includes vulkan
-	#define VK_USE_PLATFORM_WIN32_KHR
-	#include <GLFW/glfw3.h>	
-#else
-	#define VK_USE_PLATFORM_WIN32_KHR
-	#include <vulkan\vulkan.hpp>	//<-- can be used to for off-screen rendering
-#endif
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <vulkan\vulkan.hpp>
 
 #include <vector>
 #include <memory>
@@ -37,7 +31,6 @@ class HelloTriangleApplication {
 public:
 	explicit HelloTriangleApplication(Scene scene);
 
-	// Does everything!
 	void run();
 
 private:
@@ -109,7 +102,6 @@ private:
 	vk::Format findDepthFormat() const;
 	void createDepthResources();
 	void createQueryPool();
-	// Initializes Vulkan
 	void initVulkan();
 
 	void createSemaphores();
@@ -126,49 +118,34 @@ private:
 
 	void createImageViews();
 
-	//  Creates and sets the swapchain + sets "swapChainImageFormat" and "swapChainExtent".
 	void createSwapChain();
 
-	/**
-	* \brief Creates a surface for the window (GLFW handles specifics)
-	*/
 	void createSurface();
 
-	// Creates and sets "logicalDevice". Also sets "presentQueue" and "graphicsQueue"
 	void createLogicalDevice();
 
-	// Finds a suitable physical device with Vulkan support, and sets it to "physicalDevice"
 	void pickPhysicalDevice();
 
-	// Finds and returns Queue-families to fill the struct QueueFamilyIndices.
 	QueueFamilyIndices findQueueFamilies(const vk::PhysicalDevice& device) const;
 
-	// Determines if the given physical device supports both Queue-families and "deviceExtensions"
 	bool isDeviceSuitable(const vk::PhysicalDevice& device) const;
 
-	// Determines if the physical device supports all extensions in "deviceExtensions"
 	static bool checkDeviceExtensionSupport(const vk::PhysicalDevice& device);
 
-	// Queries for the capabilities of the physical device, surface format, and present mode
 	SwapChainSupportDetails querySwapChainSupport(const vk::PhysicalDevice& device) const;
 
-	// Finds and returns the optimal format (colour space + colour format).
 	static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
 
-	// Finds and returns the optimal present mode (i.e. how we write to swapchain).
 	static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
 
-	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
 	vk::Extent2D chooseSwapExtend(const vk::SurfaceCapabilitiesKHR& capabilities) const;
 	void updateUniformBuffer();
 	void updateDynamicUniformBuffer() const;
 
-	// Handles (window) events
 	void mainLoop();
 
 	void drawFrame();
 
-	// Destroys allocated stuff gracefully
 	void cleanup();
 
 	void recreateSwapChain();

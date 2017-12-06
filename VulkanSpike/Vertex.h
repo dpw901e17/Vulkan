@@ -14,7 +14,7 @@ struct Vertex
 		vk::VertexInputBindingDescription binding_description;
 		binding_description.binding = 0;
 		binding_description.stride = sizeof(Vertex);
-		binding_description.inputRate = vk::VertexInputRate::eVertex; // Replace with VK_VERTEX_INPUT_RATE_INSTANCE for instancing
+		binding_description.inputRate = vk::VertexInputRate::eVertex; 
 
 		return binding_description;
 	}
