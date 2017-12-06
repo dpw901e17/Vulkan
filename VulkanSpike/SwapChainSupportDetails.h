@@ -11,9 +11,7 @@ struct SwapChainSupportDetails {
 	{
 		SwapChainSupportDetails details;
 		details.capabilities = device.getSurfaceCapabilitiesKHR(surface);
-
 		details.formats = device.getSurfaceFormatsKHR(surface);
-
 		details.presentmodes = device.getSurfacePresentModesKHR(surface);
 
 		return details;

@@ -1,7 +1,8 @@
 #include "Swapchain.h"
 #include "QueueFamilyIndices.h"
+#include "Image.h"
 
-Swapchain::Swapchain(const Window& window, const vk::SurfaceKHR& surface, const vk::PhysicalDevice& physical_device, const vk::Device& logical_device, const vk::ImageView depth_image_view)
+Swapchain::Swapchain(const Window& window, const vk::SurfaceKHR& surface, const vk::PhysicalDevice& physical_device, const vk::Device& logical_device)
 	: m_Device(logical_device)
 {
 	auto swapChainSupport = SwapChainSupportDetails::querySwapChainSupport(surface, physical_device);
@@ -66,6 +67,26 @@ Swapchain::Swapchain(const Window& window, const vk::SurfaceKHR& surface, const 
 		m_ImageViews[i] = logical_device.createImageView(view_info);
 	}
 
+	// Create depth image
+	auto depth_format = findDepthFormat(physical_device);
+
+	vk::ImageCreateInfo imageCreateInfo = {};
+	imageCreateInfo.imageType = vk::ImageType::e2D;
+	imageCreateInfo.extent.width = width();
+	imageCreateInfo.extent.height = height();
+	imageCreateInfo.extent.depth = 1;
+	imageCreateInfo.mipLevels = 1;
+	imageCreateInfo.arrayLayers = 1;
+	imageCreateInfo.format = depth_format;
+	imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
+	imageCreateInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+	imageCreateInfo.samples = vk::SampleCountFlagBits::e1;
+
+	auto depth_image = Image(logical_device, physical_device, imageCreateInfo, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eDepth);
+
+	transitionImageLayout(depth_image.m_Image, depth_image.m_Format, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	return depth_image;
+
 	// Create framebuffers
 	m_Framebuffers.resize(m_ImageViews.size());
 	for (size_t i = 0; i < m_ImageViews.size(); i++) {
@@ -83,13 +104,14 @@ Swapchain::Swapchain(const Window& window, const vk::SurfaceKHR& surface, const 
 		framebufferInfo.layers = 1;
 
 		m_Framebuffers[i] = m_Device.createFramebuffer(framebufferInfo);
-
-
 	}
 }
 
 Swapchain::~Swapchain()
 {
+	for (auto imageView : m_ImageViews) {
+		m_Device.destroyImageView(imageView);
+	}
 	m_Device.destroySwapchainKHR(m_SwapChain);
 }
 

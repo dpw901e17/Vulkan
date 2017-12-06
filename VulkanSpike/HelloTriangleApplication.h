@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 
 #include "Buffer.h"
+#include "Device.h"
 #include "Image.h"
 #include "Instance.h"
 #include "Swapchain.h"
@@ -57,11 +58,7 @@ private:
 	Scene m_Scene;
 	Instance m_Instance;
 	vk::SurfaceKHR m_Surface;
-	vk::PhysicalDevice m_PhysicalDevice;
-	vk::Queue m_GraphicsQueue;
-	vk::Queue m_PresentQueue;
-	vk::Device m_LogicalDevice;
-	Image m_DepthImage;
+	Device m_Device;
 	Swapchain m_SwapChain;
 
 	vk::RenderPass m_RenderPass;
@@ -100,9 +97,9 @@ private:
 	void createDescriptorSet();
 	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect_flags = vk::ImageAspectFlagBits::eColor) const;
 	void createTextureSampler();
-	vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) const;
-	vk::Format findDepthFormat() const;
-	static Image createDepthResources();
+	static vk::Format findSupportedFormat(const vk::PhysicalDevice&, const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
+	static vk::Format findDepthFormat(const vk::PhysicalDevice&);
+	static Image createDepthResources(const vk::PhysicalDevice& physical_device, const vk::Device& logical_device, const Swapchain&);
 	void createQueryPool();
 	// Initializes Vulkan
 	void initVulkan();
@@ -115,7 +112,7 @@ private:
 
 	void createFramebuffers();
 
-	static vk::RenderPass createRenderPass(const vk::Device&, const Swapchain&);
+	static vk::RenderPass createRenderPass(const vk::PhysicalDevice&, const vk::Device&, const Swapchain&);
 
 	void createGraphicsPipeline();
 

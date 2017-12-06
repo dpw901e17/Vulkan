@@ -9,7 +9,7 @@
 class Swapchain
 {
 public:
-	Swapchain(const Window& window, const vk::SurfaceKHR& surface, const vk::PhysicalDevice& physical_device, const vk::Device& logical_device, vk::ImageView depth_image_view);
+	Swapchain(const Window& window, const vk::SurfaceKHR& surface, const vk::PhysicalDevice& physical_device, const vk::Device& logical_device);
 	~Swapchain();
 
 	uint32_t width() const { return m_Extent.width; }
