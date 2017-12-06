@@ -75,7 +75,12 @@ const std::vector<uint16_t>HelloTriangleApplication::s_Indices = {
 HelloTriangleApplication::HelloTriangleApplication(Scene scene) 
 	: m_Window(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", WIDTH, HEIGHT), 
 	  m_Scene(scene),
-	  m_Instance()
+	  m_Instance(),
+	  m_Surface(createSurface(m_Window, m_Instance)),
+	  m_PhysicalDevice(pickPhysicalDevice(m_Instance, m_Surface)),
+	  m_LogicalDevice(createLogicalDevice(m_Surface, m_PhysicalDevice, QueueFamilyIndices::findQueueFamilies(m_PhysicalDevice, m_Surface))),
+	  m_DepthImage(createDepthResources()),
+	  m_SwapChain(m_Window, m_Surface, m_PhysicalDevice, m_LogicalDevice, m_DepthImage.m_ImageView)
 {
 }
 
@@ -321,14 +326,14 @@ inline bool hasStencilComponent(vk::Format format)
 	return format == vk::Format::eD32SfloatS8Uint|| format == vk::Format::eD24UnormS8Uint;
 }
 
-void HelloTriangleApplication::createDepthResources()
+Image HelloTriangleApplication::createDepthResources()
 {
 	auto depth_format = findDepthFormat();
 
 	vk::ImageCreateInfo imageCreateInfo = {};
 	imageCreateInfo.imageType = vk::ImageType::e2D;
-	imageCreateInfo.extent.width = m_SwapChainExtent.width;
-	imageCreateInfo.extent.height = m_SwapChainExtent.height;
+	imageCreateInfo.extent.width = m_SwapChain.width();
+	imageCreateInfo.extent.height = m_SwapChain.height();
 	imageCreateInfo.extent.depth = 1;
 	imageCreateInfo.mipLevels = 1;
 	imageCreateInfo.arrayLayers = 1;
@@ -337,9 +342,10 @@ void HelloTriangleApplication::createDepthResources()
 	imageCreateInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
 	imageCreateInfo.samples = vk::SampleCountFlagBits::e1;
 
-	m_DepthImage = std::make_unique<Image>(m_LogicalDevice, m_PhysicalDevice, imageCreateInfo, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eDepth);
+	auto depth_image = Image(m_LogicalDevice, m_PhysicalDevice, imageCreateInfo, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eDepth);
 
-	transitionImageLayout(m_DepthImage->m_Image, m_DepthImage->m_Format, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	transitionImageLayout(depth_image.m_Image, depth_image.m_Format, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+	return depth_image;
 }
 
 void HelloTriangleApplication::createQueryPool()
@@ -347,7 +353,7 @@ void HelloTriangleApplication::createQueryPool()
 	vk::QueryPoolCreateInfo query_pool_create_info;
 	query_pool_create_info
 		.setQueryType(vk::QueryType::ePipelineStatistics)
-		.setQueryCount(m_SwapChainFramebuffers.size())
+		.setQueryCount(m_SwapChain.framebuffers().size())
 		.setPipelineStatistics(
 			vk::QueryPipelineStatisticFlagBits::eClippingInvocations |
 			vk::QueryPipelineStatisticFlagBits::eClippingPrimitives |
@@ -367,15 +373,10 @@ void HelloTriangleApplication::createQueryPool()
 
 // Initializes Vulkan
 void HelloTriangleApplication::initVulkan() {
-	createSurface();
-	pickPhysicalDevice();
-	createLogicalDevice();
-	createSwapChain();
-	createImageViews();
 	createRenderPass();
 	createDescriptorSetLayout();
 	createGraphicsPipeline();
-	createCommandPool();
+	createCommandPool(QueueFamilyIndices::findQueueFamilies(m_PhysicalDevice, m_Surface));
 	createDepthResources();
 	createFramebuffers();
 	createTextureImage();
@@ -398,7 +399,7 @@ void HelloTriangleApplication::createSemaphores() {
 }
 
  void HelloTriangleApplication::createCommandBuffers() {
-	m_CommandBuffers.resize(m_SwapChainFramebuffers.size());
+	m_CommandBuffers.resize(m_SwapChain.framebuffers().size());
 
 	//allocate room for buffers in command pool:
 
@@ -421,10 +422,10 @@ void HelloTriangleApplication::createSemaphores() {
 		//starting render pass:
 		vk::RenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.renderPass = m_RenderPass;
-		renderPassInfo.framebuffer = m_SwapChainFramebuffers[i];
+		renderPassInfo.framebuffer = m_SwapChain.framebuffers()[i];
 
 		renderPassInfo.renderArea.offset = vk::Offset2D{ 0,0 };
-		renderPassInfo.renderArea.extent = m_SwapChainExtent;
+		renderPassInfo.renderArea.extent = m_SwapChain.extent();
 
 		std::array<vk::ClearValue, 2> clear_values = {};
 		clear_values[0].color = vk::ClearColorValue(std::array<float, 4>{0.2f, 0.3f, 0.8f, 1.0f});
@@ -458,44 +459,42 @@ void HelloTriangleApplication::createSemaphores() {
 	}
 }
 
- void HelloTriangleApplication::createCommandPool() {
-	QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_PhysicalDevice);
-
+ void HelloTriangleApplication::createCommandPool(const QueueFamilyIndices& indices) {
 	vk::CommandPoolCreateInfo poolInfo = {};
-	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
+	poolInfo.queueFamilyIndex = indices.graphicsFamily;
 	poolInfo.flags = vk::CommandPoolCreateFlags(); //optional about rerecording strategy of cmd buffer(s)
 
 	m_CommandPool = m_LogicalDevice.createCommandPool(poolInfo);
 }
 
  void HelloTriangleApplication::createFramebuffers() {
-	m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
+	m_SwapChain.framebuffers().resize(m_SwapChain.imageViews().size());
 
-	for (size_t i = 0; i < m_SwapChainImageViews.size(); i++) {
+	for (size_t i = 0; i < m_SwapChain.imageViews().size(); i++) {
 		std::array<vk::ImageView, 2> attachments = {
-			m_SwapChainImageViews[i],
-			m_DepthImage->m_ImageView
+			m_SwapChain.imageViews()[i],
+			m_DepthImage.m_ImageView
 		};
 
 		vk::FramebufferCreateInfo framebufferInfo = {};
 		framebufferInfo.renderPass = m_RenderPass;
 		framebufferInfo.attachmentCount = attachments.size();
 		framebufferInfo.pAttachments = attachments.data();
-		framebufferInfo.width = m_SwapChainExtent.width;
-		framebufferInfo.height = m_SwapChainExtent.height;
+		framebufferInfo.width = m_SwapChain.width();
+		framebufferInfo.height = m_SwapChain.height();
 		framebufferInfo.layers = 1;
 
-		m_SwapChainFramebuffers[i] = m_LogicalDevice.createFramebuffer(framebufferInfo);
+		m_SwapChain.framebuffers()[i] = m_LogicalDevice.createFramebuffer(framebufferInfo);
 
 
 	}
 }
 
- void HelloTriangleApplication::createRenderPass() {
+ vk::RenderPass HelloTriangleApplication::createRenderPass(const vk::Device& device, const Swapchain& swapchain) {
 
 	// Color buffer resides as swapchain image. 
 	vk::AttachmentDescription colorAttatchment;
-	colorAttatchment.setFormat(m_SwapChainImageFormat)
+	colorAttatchment.setFormat(swapchain.imageFormat())
 		.setLoadOp(vk::AttachmentLoadOp::eClear)
 		.setStencilLoadOp(vk::AttachmentLoadOp::eLoad)
 		.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
@@ -538,7 +537,7 @@ void HelloTriangleApplication::createSemaphores() {
 		.setDependencyCount(1)
 		.setPDependencies(&dependency);
 
-	m_RenderPass = m_LogicalDevice.createRenderPass(renderPassInfo);
+	return device.createRenderPass(renderPassInfo);
 }
 
  void HelloTriangleApplication::createGraphicsPipeline() {
@@ -564,10 +563,10 @@ void HelloTriangleApplication::createSemaphores() {
 	inputAssembly.setTopology(vk::PrimitiveTopology::eTriangleList);
 
 	// Creating a viewport to render to
-	vk::Viewport viewport(0.0f, 0.0f, m_SwapChainExtent.width, m_SwapChainExtent.height, 0.0f, 1.0f);
+	vk::Viewport viewport(0.0f, 0.0f, m_SwapChain.width(), m_SwapChain.height(), 0.0f, 1.0f);
 
 	// Scissor rectangle. Defines image cropping of viewport.
-	vk::Rect2D scissor({ 0, 0 }, m_SwapChainExtent);
+	vk::Rect2D scissor({ 0, 0 }, m_SwapChain.extent());
 
 	// Combine viewport and scissor into a viewport state
 	vk::PipelineViewportStateCreateInfo viewportState;
@@ -628,83 +627,25 @@ void HelloTriangleApplication::createSemaphores() {
 	m_GraphicsPipeline = m_LogicalDevice.createGraphicsPipeline(vk::PipelineCache(), pipelineInfo);
 }
 
- void HelloTriangleApplication::createImageViews() {
-	m_SwapChainImageViews.resize(m_SwapChainImages.size());
-
-	for (size_t i = 0; i < m_SwapChainImages.size(); i++) {
-		m_SwapChainImageViews[i] = createImageView(m_SwapChainImages[i], m_SwapChainImageFormat);
-	}
-}
-
-//  Creates and sets the swapchain + sets "swapChainImageFormat" and "swapChainExtent".
- void HelloTriangleApplication::createSwapChain() {
-	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_PhysicalDevice);
-
-	vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-	vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentmodes);
-	m_SwapChainExtent = chooseSwapExtend(swapChainSupport.capabilities);
-
-	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-	if (swapChainSupport.capabilities.maxImageCount > 0 &&
-		imageCount > swapChainSupport.capabilities.maxImageCount) {
-		imageCount = swapChainSupport.capabilities.maxImageCount;
-	}
-
-	vk::SwapchainCreateInfoKHR createInfo = {};
-	createInfo.surface = m_Surface;
-	createInfo.minImageCount = imageCount;
-	createInfo.imageFormat = surfaceFormat.format;
-	createInfo.imageColorSpace = surfaceFormat.colorSpace;
-	createInfo.imageExtent = m_SwapChainExtent;
-	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
-
-	QueueFamilyIndices indices = findQueueFamilies(m_PhysicalDevice);
-	uint32_t queueFamilyIndices[] = {
-		indices.graphicsFamily, indices.presentFamily
-	};
-
-	if (indices.graphicsFamily != indices.presentFamily) {
-		createInfo.imageSharingMode = vk::SharingMode::eConcurrent;
-		createInfo.queueFamilyIndexCount = 2;
-		createInfo.pQueueFamilyIndices = queueFamilyIndices;
-	}
-	else {
-		createInfo.imageSharingMode = vk::SharingMode::eExclusive;
-		createInfo.queueFamilyIndexCount = 0; //optional
-		createInfo.pQueueFamilyIndices = nullptr; //optional
-	}
-
-	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-	createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-	createInfo.presentMode = presentMode;
-	createInfo.clipped = VK_TRUE;
-
-	m_SwapChain = m_LogicalDevice.createSwapchainKHR(createInfo);
-
-
-	m_SwapChainImages = m_LogicalDevice.getSwapchainImagesKHR(m_SwapChain);
-
-	
-	m_SwapChainImageFormat = surfaceFormat.format;
-}
-
- void HelloTriangleApplication::createSurface() {
+vk::SurfaceKHR HelloTriangleApplication::createSurface(const Window& window, const Instance& instance)
+{
 	 VkWin32SurfaceCreateInfoKHR surface_info = {};
 	 surface_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-	 surface_info.hwnd = m_Window.GetHandle();
+	 surface_info.hwnd = window.GetHandle();
 	 surface_info.hinstance = GetModuleHandle(nullptr);
 
-	 auto CreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(m_Instance->getProcAddr("vkCreateWin32SurfaceKHR"));
+	 auto CreateWin32SurfaceKHR = reinterpret_cast<PFN_vkCreateWin32SurfaceKHR>(instance->getProcAddr("vkCreateWin32SurfaceKHR"));
 
-	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(static_cast<VkInstance>(*m_Instance), &surface_info, nullptr, reinterpret_cast<VkSurfaceKHR*>(&m_Surface)) != VK_SUCCESS) {
+	 VkSurfaceKHR surface;
+
+	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(static_cast<VkInstance>(*instance), &surface_info, nullptr, reinterpret_cast<VkSurfaceKHR*>(&surface)) != VK_SUCCESS) {
 		 throw std::runtime_error("failed to create window surface!");
 	 }
+
+	 return vk::SurfaceKHR(surface);
 }
 
- void HelloTriangleApplication::createLogicalDevice() {
-	auto indices = findQueueFamilies(m_PhysicalDevice);
-
+vk::Device HelloTriangleApplication::createLogicalDevice(const vk::SurfaceKHR surface, const vk::PhysicalDevice& physical_device, const QueueFamilyIndices& indices) {
 	std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
 	std::set<int> uniqueQueueFamilies = { indices.graphicsFamily, indices.presentFamily };
 	float queuePriorty = 1.0f;
@@ -732,68 +673,37 @@ void HelloTriangleApplication::createSemaphores() {
 	createInfo.ppEnabledExtensionNames = s_DeviceExtensions.data();
 	createInfo.enabledLayerCount = 0;
 
-	m_LogicalDevice = m_PhysicalDevice.createDevice(createInfo);
+	auto logical_device = physical_device.createDevice(createInfo);
 
 	// Get handle to queue in the logicalDevice
-	m_GraphicsQueue = m_LogicalDevice.getQueue(indices.graphicsFamily, 0);
-	m_PresentQueue = m_LogicalDevice.getQueue(indices.presentFamily, 0);
+	m_GraphicsQueue = logical_device.getQueue(indices.graphicsFamily, 0);
+	m_PresentQueue = logical_device.getQueue(indices.presentFamily, 0);
+
+	return logical_device;
 }
 
- void HelloTriangleApplication::pickPhysicalDevice() {	
-	for (auto& device : m_Instance->enumeratePhysicalDevices()) {
-		if(isDeviceSuitable(device)){
-			m_PhysicalDevice = device;
-			break;
+ vk::PhysicalDevice HelloTriangleApplication::pickPhysicalDevice(const Instance& instance, const vk::SurfaceKHR& surface) const
+ {	
+	 auto indices = QueueFamilyIndices::findQueueFamilies(m_PhysicalDevice, m_Surface);
+	for (auto& device : instance->enumeratePhysicalDevices()) {
+		if(isDeviceSuitable(device, surface, indices)){
+			return device;
 		}
 	}
-
-	if (!m_PhysicalDevice) {
-		throw std::runtime_error("failed to find suitable GPU!");
-	}
-}
-
- QueueFamilyIndices HelloTriangleApplication::findQueueFamilies(const vk::PhysicalDevice& device) const
- {
-	QueueFamilyIndices indices;
-
-
-	std::vector<vk::QueueFamilyProperties> queueFamilies = device.getQueueFamilyProperties();
 	
-	for (int i = 0; i < queueFamilies.size(); i++) {
-		auto queueFamily = queueFamilies.at(i);
-
-		//check for graphics family
-		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
-			indices.graphicsFamily = i;
-		}
-
-		//check for present family
-		if (queueFamily.queueCount > 0 && device.getSurfaceSupportKHR(i, m_Surface)) {
-			indices.presentFamily = i;
-		}
-
-
-		if (indices.isComplete()) {
-			break;
-		}
-	}
-
-	return indices;
+	throw std::runtime_error("failed to find suitable GPU!");
 }
 
- bool HelloTriangleApplication::isDeviceSuitable(const vk::PhysicalDevice& device) const
+ bool HelloTriangleApplication::isDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, const QueueFamilyIndices& indices) const
  {
-
-	QueueFamilyIndices indices = findQueueFamilies(device);
-
 	bool extensionsSupported = checkDeviceExtensionSupport(device);
 	bool swapChainAdequate = false;
 	if (extensionsSupported) {
-		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+		auto swapChainSupport = querySwapChainSupport(device);
 		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentmodes.empty();
 	}
 
-	vk::PhysicalDeviceFeatures supportedFeatures = device.getFeatures();
+	 auto supportedFeatures = device.getFeatures();
 
 	
 	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
@@ -958,7 +868,7 @@ void HelloTriangleApplication::mainLoop() {
 void HelloTriangleApplication::drawFrame() {
 
 	// Aquire image
-	auto imageResult = m_LogicalDevice.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvaliableSemaphore, vk::Fence());
+	auto imageResult = m_LogicalDevice.acquireNextImageKHR(*m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvaliableSemaphore, vk::Fence());
 	
 	if(imageResult.result  == vk::Result::eErrorOutOfDateKHR)
 	{
@@ -998,7 +908,7 @@ void HelloTriangleApplication::drawFrame() {
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
-	vk::SwapchainKHR swapChains[] = { m_SwapChain };
+	vk::SwapchainKHR swapChains[] = { *m_SwapChain };
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 	presentInfo.pImageIndices = &imageResult.value;
@@ -1050,11 +960,10 @@ void HelloTriangleApplication::recreateSwapChain()
 
 	cleanupSwapChain();
 
-	createSwapChain();
-	createImageViews();
+	m_DepthImage = createDepthResources();
+	m_SwapChain = Swapchain(m_Window, m_Surface, m_PhysicalDevice, m_LogicalDevice, m_DepthImage.m_ImageView);
 	createRenderPass();
 	createGraphicsPipeline();
-	createDepthResources();
 	createFramebuffers();
 	createCommandBuffers();
 }
@@ -1063,7 +972,7 @@ void HelloTriangleApplication::cleanupSwapChain()
 {
 	m_LogicalDevice.waitIdle();
 	
-	for (auto frameBuffer  : m_SwapChainFramebuffers) {
+	for (auto frameBuffer  : m_SwapChain.framebuffers()) {
 		m_LogicalDevice.destroyFramebuffer(frameBuffer);
 	}
 
@@ -1075,11 +984,9 @@ void HelloTriangleApplication::cleanupSwapChain()
 
 	m_LogicalDevice.destroyRenderPass(m_RenderPass);
 
-	for (auto imageView : m_SwapChainImageViews) {
+	for (auto imageView : m_SwapChain.imageViews()) {
 		m_LogicalDevice.destroyImageView(imageView);
 	}
-
-	m_LogicalDevice.destroySwapchainKHR(m_SwapChain);
 }
 
 // TODO: Flyt denne metode ind i buffer klassen

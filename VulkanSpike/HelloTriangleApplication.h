@@ -19,6 +19,7 @@
 #include "Buffer.h"
 #include "Image.h"
 #include "Instance.h"
+#include "Swapchain.h"
 
 class Scene;
 struct QueueFamilyIndices;
@@ -55,18 +56,13 @@ private:
 	Window m_Window;
 	Scene m_Scene;
 	Instance m_Instance;
-	vk::PhysicalDevice m_PhysicalDevice;
-	vk::Device m_LogicalDevice;
-	vk::Queue m_GraphicsQueue;
 	vk::SurfaceKHR m_Surface;
+	vk::PhysicalDevice m_PhysicalDevice;
+	vk::Queue m_GraphicsQueue;
 	vk::Queue m_PresentQueue;
-
-	vk::SwapchainKHR m_SwapChain;
-	std::vector<vk::Image> m_SwapChainImages;
-	vk::Format m_SwapChainImageFormat;
-	vk::Extent2D m_SwapChainExtent;
-	std::vector<vk::ImageView> m_SwapChainImageViews;
-	std::vector<vk::Framebuffer> m_SwapChainFramebuffers;
+	vk::Device m_LogicalDevice;
+	Image m_DepthImage;
+	Swapchain m_SwapChain;
 
 	vk::RenderPass m_RenderPass;
 	vk::DescriptorSetLayout m_DescriptorSetLayout;
@@ -88,7 +84,6 @@ private:
 	vk::DescriptorSet m_DescriptorSet;
 	std::unique_ptr<Image> m_TextureImage;
 	vk::Sampler m_TextureSampler;
-	std::unique_ptr<Image> m_DepthImage;
 	uint32_t m_DynamicAllignment;
 	vk::QueryPool m_QueryPool;
 	TestConfiguration m_testConfiguration;
@@ -107,7 +102,7 @@ private:
 	void createTextureSampler();
 	vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) const;
 	vk::Format findDepthFormat() const;
-	void createDepthResources();
+	static Image createDepthResources();
 	void createQueryPool();
 	// Initializes Vulkan
 	void initVulkan();
@@ -116,35 +111,25 @@ private:
 
 	void createCommandBuffers();
 
-	void createCommandPool();
+	void createCommandPool(const QueueFamilyIndices& indices);
 
 	void createFramebuffers();
 
-	void createRenderPass();
+	static vk::RenderPass createRenderPass(const vk::Device&, const Swapchain&);
 
 	void createGraphicsPipeline();
-
-	void createImageViews();
-
-	//  Creates and sets the swapchain + sets "swapChainImageFormat" and "swapChainExtent".
-	void createSwapChain();
 
 	/**
 	* \brief Creates a surface for the window (GLFW handles specifics)
 	*/
-	void createSurface();
+	static vk::SurfaceKHR createSurface(const Window&, const Instance&);
 
 	// Creates and sets "logicalDevice". Also sets "presentQueue" and "graphicsQueue"
-	void createLogicalDevice();
-
-	// Finds a suitable physical device with Vulkan support, and sets it to "physicalDevice"
-	void pickPhysicalDevice();
-
-	// Finds and returns Queue-families to fill the struct QueueFamilyIndices.
-	QueueFamilyIndices findQueueFamilies(const vk::PhysicalDevice& device) const;
+	vk::Device createLogicalDevice(const vk::SurfaceKHR, const vk::PhysicalDevice&, const QueueFamilyIndices& indices);
+	vk::PhysicalDevice pickPhysicalDevice(const Instance&, const vk::SurfaceKHR&) const;
 
 	// Determines if the given physical device supports both Queue-families and "deviceExtensions"
-	bool isDeviceSuitable(const vk::PhysicalDevice& device) const;
+	bool isDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR&, const QueueFamilyIndices& indices) const;
 
 	// Determines if the physical device supports all extensions in "deviceExtensions"
 	static bool checkDeviceExtensionSupport(const vk::PhysicalDevice& device);
