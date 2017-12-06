@@ -988,6 +988,13 @@ void HelloTriangleApplication::cleanup() {
 
 	m_LogicalDevice.destroyQueryPool(m_QueryPool);
 
+	m_VertexBuffer = nullptr;
+	m_IndexBuffer = nullptr;
+	m_UniformBuffer = nullptr;
+	m_DynamicUniformBuffer = nullptr;
+	m_DepthImage = nullptr;
+	m_TextureImage = nullptr;
+
 	m_LogicalDevice.destroy();
 	m_Instance->destroySurfaceKHR(m_Surface);
 }
