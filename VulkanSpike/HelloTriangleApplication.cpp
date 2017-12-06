@@ -622,6 +622,7 @@ void HelloTriangleApplication::createSemaphores() {
 		.setLayout(m_PipelineLayout)
 		.setRenderPass(m_RenderPass);
 
+	m_GraphicsPipeline = m_Device->createGraphicsPipeline(vk::PipelineCache(), pipelineInfo);
 }
 
 vk::SurfaceKHR HelloTriangleApplication::createSurface(const Window& window, const Instance& instance)
