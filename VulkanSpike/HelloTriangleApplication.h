@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 
 #include "Buffer.h"
+#include "CommandPool.h"
 #include "Device.h"
 #include "Image.h"
 #include "Instance.h"
@@ -59,14 +60,13 @@ private:
 	Instance m_Instance;
 	vk::SurfaceKHR m_Surface;
 	Device m_Device;
+	CommandPool m_CommandPool;
 	Swapchain m_SwapChain;
 
-	vk::RenderPass m_RenderPass;
 	vk::DescriptorSetLayout m_DescriptorSetLayout;
 	vk::PipelineLayout m_PipelineLayout;
 	vk::Pipeline m_GraphicsPipeline;
 
-	vk::CommandPool m_CommandPool;
 	std::vector<vk::CommandBuffer> m_CommandBuffers;
 
 	vk::Semaphore m_ImageAvaliableSemaphore;
@@ -97,9 +97,6 @@ private:
 	void createDescriptorSet();
 	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect_flags = vk::ImageAspectFlagBits::eColor) const;
 	void createTextureSampler();
-	static vk::Format findSupportedFormat(const vk::PhysicalDevice&, const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
-	static vk::Format findDepthFormat(const vk::PhysicalDevice&);
-	static Image createDepthResources(const vk::PhysicalDevice& physical_device, const vk::Device& logical_device, const Swapchain&);
 	void createQueryPool();
 	// Initializes Vulkan
 	void initVulkan();
@@ -108,22 +105,12 @@ private:
 
 	void createCommandBuffers();
 
-	void createCommandPool(const QueueFamilyIndices& indices);
-
-	void createFramebuffers();
-
-	static vk::RenderPass createRenderPass(const vk::PhysicalDevice&, const vk::Device&, const Swapchain&);
-
 	void createGraphicsPipeline();
 
 	/**
 	* \brief Creates a surface for the window (GLFW handles specifics)
 	*/
 	static vk::SurfaceKHR createSurface(const Window&, const Instance&);
-
-	// Creates and sets "logicalDevice". Also sets "presentQueue" and "graphicsQueue"
-	vk::Device createLogicalDevice(const vk::SurfaceKHR, const vk::PhysicalDevice&, const QueueFamilyIndices& indices);
-	vk::PhysicalDevice pickPhysicalDevice(const Instance&, const vk::SurfaceKHR&) const;
 
 	// Determines if the given physical device supports both Queue-families and "deviceExtensions"
 	bool isDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR&, const QueueFamilyIndices& indices) const;
@@ -157,12 +144,5 @@ private:
 
 	void cleanupSwapChain();
 
-	void copyBuffer(vk::Buffer source, vk::Buffer destination, vk::DeviceSize);
-
 	void createTextureImage();
-
-	vk::CommandBuffer beginSingleTimeCommands() const;
-	void endSingleTimeCommands(vk::CommandBuffer commandBuffer);
-	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
-	void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height);
 };

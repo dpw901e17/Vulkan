@@ -19,6 +19,35 @@ Device::~Device()
 {
 }
 
+vk::Format Device::findDepthFormat() const
+{
+	return findSupportedFormat(
+	{ vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint },
+		vk::ImageTiling::eOptimal,
+		vk::FormatFeatureFlagBits::eDepthStencilAttachment
+	);
+}
+
+vk::Format Device::findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) const
+{
+	for (auto& format : candidates)
+	{
+		auto properties = m_PhysicalDevice.getFormatProperties(format);
+
+		if ((tiling == vk::ImageTiling::eLinear && (properties.linearTilingFeatures & features) == features) ||
+			(tiling == vk::ImageTiling::eOptimal && (properties.optimalTilingFeatures & features) == features)) {
+			return format;
+		}
+	}
+	throw std::runtime_error("failed to find supported format!");
+}
+
+void Device::present(vk::PresentInfoKHR present_info) const
+{
+	m_PresentQueue.presentKHR(present_info);
+	m_PresentQueue.waitIdle();
+}
+
 bool Device::checkDeviceExtensionSupport(const vk::PhysicalDevice& device)
 {
 	auto avaliableExtensions = device.enumerateDeviceExtensionProperties();

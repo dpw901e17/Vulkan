@@ -1,16 +1,16 @@
 #pragma once
 #include <vulkan/vulkan.hpp>
-#include "Utility.h"
 
 class Shader
 {
 public:
 	Shader(vk::Device device, std::string file_path, vk::ShaderStageFlagBits stage);
+	Shader(const Shader&) = delete;
 	~Shader();
 
-	vk::PipelineShaderStageCreateInfo m_Info;
+	Shader& operator=(const Shader&) = delete;
 private:
+	vk::PipelineShaderStageCreateInfo m_Info;
 	vk::Device m_Device;
 	vk::ShaderModule m_Module;
-
 };

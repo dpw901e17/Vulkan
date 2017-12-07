@@ -91,13 +91,3 @@ Instance::~Instance()
 #endif
 	m_Instance.destroy();
 }
-
-const vk::Instance* Instance::operator->() const
-{
-	return &m_Instance;
-}
-
-vk::Instance Instance::operator*() const
-{
-	return m_Instance;
-}

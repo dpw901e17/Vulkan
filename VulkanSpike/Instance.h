@@ -6,10 +6,11 @@ class Instance
 {
 public:
 	Instance();
+	Instance(const Instance&) = delete;
 	~Instance();
 
-	const vk::Instance* operator ->() const;
-	vk::Instance operator *() const;
+	const vk::Instance* operator ->() const{ return &m_Instance; }
+	explicit operator vk::Instance() const { return m_Instance; }
 private:
 	static const std::vector<const char*> s_RequiredExtensions;
 	vk::Instance m_Instance;

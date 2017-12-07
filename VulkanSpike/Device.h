@@ -6,10 +6,27 @@ class Device
 {
 public:
 	Device(const Instance& instance, const vk::SurfaceKHR surface);
+	Device(const Device&) = delete;
 	~Device();
 
+	Device& operator =(const Device&) = delete;
+
 	const vk::Device* operator ->() const { return &m_LogicalDevice; }
-	const vk::Device& operator*() const { return m_LogicalDevice; }
+	explicit operator vk::Device() const { return m_LogicalDevice; }
+	explicit operator vk::PhysicalDevice() const { return m_PhysicalDevice; }
+	vk::PhysicalDeviceProperties getPhysicalProperties() const { return m_PhysicalDevice.getProperties(); }
+	vk::Format findDepthFormat() const;
+	vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling, vk::FormatFeatureFlags) const;
+	void submitToGraphicsQueue(const vk::SubmitInfo& submit_info) const
+	{
+		m_GraphicsQueue.submit({ submit_info }, vk::Fence());
+	}
+	void waitForGraphicsQueue() const
+	{
+		m_GraphicsQueue.waitIdle();
+	}
+
+	void present(vk::PresentInfoKHR) const;
 private:
 	static const std::vector<const char*> s_DeviceExtensions;
 
@@ -22,5 +39,4 @@ private:
 	vk::Queue m_PresentQueue;
 	vk::PhysicalDevice m_PhysicalDevice;
 	vk::Device m_LogicalDevice;
-
 };

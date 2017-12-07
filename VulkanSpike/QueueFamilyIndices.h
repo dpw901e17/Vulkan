@@ -1,4 +1,5 @@
 #pragma once
+#include <vulkan/vulkan.hpp>
 
 struct QueueFamilyIndices {
 	int graphicsFamily = -1; //<-- "not found"

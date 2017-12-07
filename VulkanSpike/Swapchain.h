@@ -5,11 +5,14 @@
 
 #include "SwapChainSupportDetails.h"
 #include "../scene-window-system/Window.h"
+#include "Device.h"
+
+class CommandPool;
 
 class Swapchain
 {
 public:
-	Swapchain(const Window& window, const vk::SurfaceKHR& surface, const vk::PhysicalDevice& physical_device, const vk::Device& logical_device);
+	Swapchain(const Window& window, const vk::SurfaceKHR& surface, const Device& device, const CommandPool&);
 	~Swapchain();
 
 	uint32_t width() const { return m_Extent.width; }
@@ -20,16 +23,18 @@ public:
 	vk::SwapchainKHR operator*() const { return m_SwapChain; }
 	std::vector<vk::Framebuffer> framebuffers() const { return m_Framebuffers; }
 	std::vector<vk::ImageView> imageViews() const { return m_ImageViews; }
+	vk::RenderPass renderPass() const { return m_RenderPass; }
 private:
 	static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
 	static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
 	static vk::Extent2D chooseSwapExtend(const Window& window, const vk::SurfaceCapabilitiesKHR& capabilities);
 
-	vk::Device m_Device;
+	const Device& m_Device;
 	vk::Extent2D m_Extent;
 	vk::SwapchainKHR m_SwapChain;
 	std::vector<vk::Image> m_Images;
 	vk::Format m_ImageFormat;
 	std::vector<vk::ImageView> m_ImageViews;
 	std::vector<vk::Framebuffer> m_Framebuffers;
+	vk::RenderPass m_RenderPass;
 };

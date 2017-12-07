@@ -80,6 +80,9 @@
     <ClInclude Include="Device.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CommandPool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.vert">

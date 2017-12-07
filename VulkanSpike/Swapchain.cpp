@@ -2,10 +2,10 @@
 #include "QueueFamilyIndices.h"
 #include "Image.h"
 
-Swapchain::Swapchain(const Window& window, const vk::SurfaceKHR& surface, const vk::PhysicalDevice& physical_device, const vk::Device& logical_device)
-	: m_Device(logical_device)
+Swapchain::Swapchain(const Window& window, const vk::SurfaceKHR& surface, const Device& device, const CommandPool& command_pool)
+	: m_Device(device)
 {
-	auto swapChainSupport = SwapChainSupportDetails::querySwapChainSupport(surface, physical_device);
+	auto swapChainSupport = SwapChainSupportDetails::querySwapChainSupport(surface, static_cast<vk::PhysicalDevice>(device));
 
 	auto surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
 	auto presentMode = chooseSwapPresentMode(swapChainSupport.presentmodes);
@@ -31,7 +31,7 @@ Swapchain::Swapchain(const Window& window, const vk::SurfaceKHR& surface, const 
 		.setPresentMode(presentMode)
 		.setClipped(true);
 	
-	auto indices = QueueFamilyIndices::findQueueFamilies(physical_device, surface);
+	auto indices = QueueFamilyIndices::findQueueFamilies(static_cast<vk::PhysicalDevice>(device), surface);
 
 	if (indices.graphicsFamily != indices.presentFamily)
 	{
@@ -46,8 +46,8 @@ Swapchain::Swapchain(const Window& window, const vk::SurfaceKHR& surface, const 
 		createInfo.setImageSharingMode(vk::SharingMode::eExclusive);
 	}
 
-	m_SwapChain = logical_device.createSwapchainKHR(createInfo);
-	m_Images = logical_device.getSwapchainImagesKHR(m_SwapChain);
+	m_SwapChain = device->createSwapchainKHR(createInfo);
+	m_Images = device->getSwapchainImagesKHR(m_SwapChain);
 	m_ImageFormat = surfaceFormat.format;
 
 	// Create Image views
@@ -64,12 +64,10 @@ Swapchain::Swapchain(const Window& window, const vk::SurfaceKHR& surface, const 
 		view_info.subresourceRange.baseArrayLayer = 0;
 		view_info.subresourceRange.layerCount = 1;
 
-		m_ImageViews[i] = logical_device.createImageView(view_info);
+		m_ImageViews[i] = device->createImageView(view_info);
 	}
 
 	// Create depth image
-	auto depth_format = findDepthFormat(physical_device);
-
 	vk::ImageCreateInfo imageCreateInfo = {};
 	imageCreateInfo.imageType = vk::ImageType::e2D;
 	imageCreateInfo.extent.width = width();
@@ -77,22 +75,71 @@ Swapchain::Swapchain(const Window& window, const vk::SurfaceKHR& surface, const 
 	imageCreateInfo.extent.depth = 1;
 	imageCreateInfo.mipLevels = 1;
 	imageCreateInfo.arrayLayers = 1;
-	imageCreateInfo.format = depth_format;
+	imageCreateInfo.format = device.findDepthFormat();
 	imageCreateInfo.tiling = vk::ImageTiling::eOptimal;
 	imageCreateInfo.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
 	imageCreateInfo.samples = vk::SampleCountFlagBits::e1;
 
-	auto depth_image = Image(logical_device, physical_device, imageCreateInfo, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eDepth);
+	auto depth_image = Image(device, imageCreateInfo, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eDepth);
 
-	transitionImageLayout(depth_image.m_Image, depth_image.m_Format, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
-	return depth_image;
+	depth_image.changeLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal, command_pool);
+
+	// Create render pass
+	{
+		// Color buffer resides as swapchain image. 
+		vk::AttachmentDescription colorAttatchment;
+		colorAttatchment.setFormat(m_ImageFormat)
+			.setLoadOp(vk::AttachmentLoadOp::eClear)
+			.setStencilLoadOp(vk::AttachmentLoadOp::eLoad)
+			.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+			.setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
+
+		vk::AttachmentReference colorAttatchmentRef(0, vk::ImageLayout::eColorAttachmentOptimal);
+
+
+		// Depth buffer resides as swapchain image. 
+		vk::AttachmentDescription depthAttatchment;
+		depthAttatchment.setFormat(device.findDepthFormat())
+			.setLoadOp(vk::AttachmentLoadOp::eClear) // Clear buffer data at load
+			.setStoreOp(vk::AttachmentStoreOp::eDontCare)
+			.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+			.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+			.setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
+		vk::AttachmentReference depthAttatchmentRef(1, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
+		vk::SubpassDescription subpass = {};
+		subpass.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+			.setColorAttachmentCount(1)
+			.setPColorAttachments(&colorAttatchmentRef)
+			.setPDepthStencilAttachment(&depthAttatchmentRef);
+
+		// Handling subpass dependencies
+		vk::SubpassDependency dependency(VK_SUBPASS_EXTERNAL);
+		dependency.setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
+			.setSrcAccessMask(vk::AccessFlags())
+			.setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
+			.setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
+
+		std::array<vk::AttachmentDescription, 2> attachments = { colorAttatchment, depthAttatchment };
+
+		vk::RenderPassCreateInfo renderPassInfo;
+		renderPassInfo.setAttachmentCount(attachments.size())
+			.setPAttachments(attachments.data())
+			.setSubpassCount(1)
+			.setPSubpasses(&subpass)
+			.setDependencyCount(1)
+			.setPDependencies(&dependency);
+
+		m_RenderPass = device->createRenderPass(renderPassInfo);
+	}
 
 	// Create framebuffers
 	m_Framebuffers.resize(m_ImageViews.size());
 	for (size_t i = 0; i < m_ImageViews.size(); i++) {
 		std::array<vk::ImageView, 2> attachments = {
 			m_ImageViews[i],
-			depth_image_view
+			depth_image.m_ImageView
 		};
 
 		vk::FramebufferCreateInfo framebufferInfo = {};
@@ -103,16 +150,16 @@ Swapchain::Swapchain(const Window& window, const vk::SurfaceKHR& surface, const 
 		framebufferInfo.height = height();
 		framebufferInfo.layers = 1;
 
-		m_Framebuffers[i] = m_Device.createFramebuffer(framebufferInfo);
+		m_Framebuffers[i] = m_Device->createFramebuffer(framebufferInfo);
 	}
 }
 
 Swapchain::~Swapchain()
 {
 	for (auto imageView : m_ImageViews) {
-		m_Device.destroyImageView(imageView);
+		m_Device->destroyImageView(imageView);
 	}
-	m_Device.destroySwapchainKHR(m_SwapChain);
+	m_Device->destroySwapchainKHR(m_SwapChain);
 }
 
 vk::SurfaceFormatKHR Swapchain::chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats)
