@@ -6,6 +6,7 @@
 #include "SwapChainSupportDetails.h"
 #include "../scene-window-system/Window.h"
 #include "Device.h"
+#include "Image.h"
 
 class CommandPool;
 
@@ -28,6 +29,10 @@ private:
 	static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
 	static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
 	static vk::Extent2D chooseSwapExtend(const Window& window, const vk::SurfaceCapabilitiesKHR& capabilities);
+	static std::vector<vk::ImageView> createImageViews(const Device&, const std::vector<vk::Image>&, const vk::Format&);
+	vk::SwapchainKHR createSwapchain(const vk::SurfaceKHR&, const SwapChainSupportDetails&, const vk::SurfaceFormatKHR&, const vk::PresentModeKHR&);
+	static vk::RenderPass createRenderPass(const Device& device, const vk::Format&);
+	std::vector<vk::Framebuffer> createFramebuffers(const Image& depth_image);
 
 	const Device& m_Device;
 	vk::Extent2D m_Extent;

@@ -14,6 +14,7 @@ public:
 	~Buffer();
 
 	Buffer& operator =(const Buffer&) = delete;
+	explicit operator vk::Buffer() const { return m_Buffer; }
 
 	void copyTo(const Buffer& destination, const CommandPool& command_pool) const;
 	void copyToImage(const Image&, uint32_t width, uint32_t height, const CommandPool&) const;
@@ -26,6 +27,6 @@ public:
 private:
 	vk::Buffer m_Buffer;
 	vk::DeviceMemory m_Memory;
-	Device m_Device;
+	const Device& m_Device;
 	vk::DeviceSize m_Size;
 };

@@ -33,6 +33,7 @@ private:
 	static bool checkDeviceExtensionSupport(const vk::PhysicalDevice& device);
 	static bool isDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, const QueueFamilyIndices& indices);
 	static vk::PhysicalDevice pickPhysicalDevice(const Instance& instance, const vk::SurfaceKHR surface);
+	static std::vector<vk::DeviceQueueCreateInfo> findUniqueQueueFamilies(QueueFamilyIndices indices);
 	static vk::Device createLogicalDevice(const vk::SurfaceKHR surface, const vk::PhysicalDevice& physical_device);
 
 	vk::Queue m_GraphicsQueue;

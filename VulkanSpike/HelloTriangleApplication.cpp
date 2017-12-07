@@ -22,6 +22,7 @@
 #include "Vertex.h"
 #include "Shader.h"
 #include "Image.h"
+#include "Utility.h"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -72,6 +73,23 @@ const std::vector<uint16_t>HelloTriangleApplication::s_Indices = {
 	4 * 5 + 0, 4 * 5 + 1, 4 * 5 + 2, 4 * 5 + 2, 4 * 5 + 3, 4 * 5 + 0  // Bottom
 };
 
+vk::DeviceSize dynamicAllignment(const Device& device, size_t min_size)
+{
+	auto properties = device.getPhysicalProperties();
+	auto allignment = properties.limits.minUniformBufferOffsetAlignment;
+
+	if (allignment > 0)
+	{
+		return (min_size + allignment - 1) & ~(allignment - 1);
+	}
+	return min_size;
+}
+
+vk::DeviceSize HelloTriangleApplication::dynamicBufferSize(const Scene& scene, const Device& device)
+{
+	return scene.renderObjects().size() * dynamicAllignment(device, sizeof(glm::mat4));
+}
+
 HelloTriangleApplication::HelloTriangleApplication(Scene scene)
 	: m_Window(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", WIDTH, HEIGHT),
 	  m_Scene(scene),
@@ -79,8 +97,14 @@ HelloTriangleApplication::HelloTriangleApplication(Scene scene)
 	  m_Surface(createSurface(m_Window, m_Instance)),
 	  m_Device(m_Instance, m_Surface),
 	  m_CommandPool(m_Device, QueueFamilyIndices::findQueueFamilies(static_cast<vk::PhysicalDevice>(m_Device), m_Surface).graphicsFamily),
-	  m_SwapChain(m_Window, m_Surface, m_Device, m_CommandPool)
+	  m_SwapChain(m_Window, m_Surface, m_Device, m_CommandPool),
+	  m_VertexBuffer(m_Device, vk::BufferCreateInfo().setSize(s_Vertices.size()).setUsage(vk::BufferUsageFlagBits::eVertexBuffer), vk::MemoryPropertyFlagBits::eDeviceLocal, (void*)s_Vertices.data(), m_CommandPool),
+	  m_IndexBuffer(m_Device, vk::BufferCreateInfo().setSize(s_Indices.size()).setUsage(vk::BufferUsageFlagBits::eIndexBuffer), vk::MemoryPropertyFlagBits::eDeviceLocal, (void*)s_Indices.data(), m_CommandPool),
+	  m_UniformBuffer(m_Device, vk::BufferCreateInfo().setSize(sizeof(m_UniformBufferObject)).setUsage(vk::BufferUsageFlagBits::eUniformBuffer), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent),
+	  m_DynamicUniformBuffer(m_Device, vk::BufferCreateInfo().setSize(dynamicBufferSize(m_Scene, m_Device)).setUsage(vk::BufferUsageFlagBits::eUniformBuffer), vk::MemoryPropertyFlagBits::eHostVisible), 
+	  m_TextureImage("textures/sample_image.jpg", m_Device, m_CommandPool)
 {
+	m_InstanceUniformBufferObject.model = static_cast<glm::mat4 *>(_aligned_malloc(dynamicBufferSize(m_Scene, m_Device), dynamicAllignment(m_Device, sizeof(glm::mat4))));;
 }
 
 void HelloTriangleApplication::run()
@@ -101,26 +125,6 @@ void HelloTriangleApplication::run()
 #endif
 	mainLoop();
 	cleanup();
-}
-
-void HelloTriangleApplication::createVertexBuffer()
-{
-	auto buffer_size = sizeof(Vertex)*s_Vertices.size();
-	vk::BufferCreateInfo buffer_create_info = {};
-	buffer_create_info.size = buffer_size;
-	buffer_create_info.usage = vk::BufferUsageFlagBits::eVertexBuffer;
-
-	m_VertexBuffer = std::make_unique<Buffer>(m_Device, buffer_create_info, vk::MemoryPropertyFlagBits::eDeviceLocal, (void*)s_Vertices.data(), m_CommandPool);
-}
-
-void HelloTriangleApplication::createIndexBuffer()
-{
-	auto buffer_size = sizeof s_Indices[0]*s_Indices.size();
-	vk::BufferCreateInfo buffer_create_info = {};
-	buffer_create_info.size = buffer_size;
-	buffer_create_info.usage = vk::BufferUsageFlagBits::eIndexBuffer;
-
-	m_IndexBuffer =  std::make_unique<Buffer>(m_Device, buffer_create_info, vk::MemoryPropertyFlagBits::eDeviceLocal, (void*)s_Indices.data(), m_CommandPool);
 }
 
 void HelloTriangleApplication::createDescriptorSetLayout()
@@ -155,31 +159,6 @@ void HelloTriangleApplication::createDescriptorSetLayout()
 	m_DescriptorSetLayout = m_Device->createDescriptorSetLayout(layoutInfo);
 }
 
-void HelloTriangleApplication::createUniformBuffer()
-{
-	vk::PhysicalDeviceProperties properties = m_Device.getPhysicalProperties();
-
-	auto buffer_size = sizeof(m_UniformBufferObject);
-	vk::BufferCreateInfo buffer_create_info;
-	buffer_create_info.size = buffer_size;
-	buffer_create_info.usage = vk::BufferUsageFlagBits::eUniformBuffer;
-	m_UniformBuffer = std::make_unique<Buffer>(m_Device, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible|vk::MemoryPropertyFlagBits::eHostCoherent);
-
-	auto allignment = properties.limits.minUniformBufferOffsetAlignment;
-	m_DynamicAllignment = sizeof(*m_InstanceUniformBufferObject.model);
-
-	if(allignment > 0)
-	{
-		m_DynamicAllignment = (m_DynamicAllignment + allignment - 1) & ~(allignment - 1);
-	}
-
-	buffer_size = m_Scene.renderObjects().size() * m_DynamicAllignment;
-	m_InstanceUniformBufferObject.model = static_cast<glm::mat4 *>(_aligned_malloc(buffer_size, m_DynamicAllignment));
-	buffer_create_info.size = buffer_size;
-	// Because no HOST_COHERENT flag we must flush the buffer when writing to it
-	m_DynamicUniformBuffer = std::make_unique<Buffer>(m_Device, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-}
-
 void HelloTriangleApplication::createDescriptorPool()
 {
 	std::array<vk::DescriptorPoolSize, 3> pool_sizes;
@@ -208,18 +187,18 @@ void HelloTriangleApplication::createDescriptorSet()
 	m_DescriptorSet = m_Device->allocateDescriptorSets(allocInfo)[0]; // WARN: Hard coded 0 value
 
 	vk::DescriptorBufferInfo bufferInfo;
-	bufferInfo.buffer = m_UniformBuffer->m_Buffer;
+	bufferInfo.buffer = static_cast<vk::Buffer>(m_UniformBuffer);
 	bufferInfo.offset = 0;
-	bufferInfo.range = m_UniformBuffer->size();
+	bufferInfo.range = m_UniformBuffer.size();
 
 	vk::DescriptorBufferInfo dynamicBufferInfo;
-	dynamicBufferInfo.buffer = m_DynamicUniformBuffer->m_Buffer;
+	dynamicBufferInfo.buffer = static_cast<vk::Buffer>(m_DynamicUniformBuffer);
 	dynamicBufferInfo.offset = 0;
-	dynamicBufferInfo.range = m_DynamicAllignment;
+	dynamicBufferInfo.range = dynamicAllignment(m_Device, sizeof(glm::mat4));;
 
 	vk::DescriptorImageInfo image_info;
 	image_info.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-	image_info.imageView = m_TextureImage->m_ImageView;
+	image_info.imageView = static_cast<vk::ImageView>(m_TextureImage);
 	image_info.sampler = m_TextureSampler;
 
 	std::array<vk::WriteDescriptorSet, 3> descriptorWrites = {
@@ -306,11 +285,7 @@ void HelloTriangleApplication::createQueryPool()
 void HelloTriangleApplication::initVulkan() {
 	createDescriptorSetLayout();
 	createGraphicsPipeline();
-	createTextureImage();
 	createTextureSampler();
-	createVertexBuffer();
-	createIndexBuffer();
-	createUniformBuffer();
 	createDescriptorPool();
 	createDescriptorSet();
 	createQueryPool();
@@ -336,6 +311,8 @@ void HelloTriangleApplication::createSemaphores() {
 	allocInfo.commandBufferCount = m_CommandBuffers.size();
 
 	m_CommandBuffers = m_Device->allocateCommandBuffers(allocInfo);
+
+	auto allignment = dynamicAllignment(m_Device, sizeof(glm::mat4));
 
 	//begin recording process:
 	for (size_t i = 0; i < m_CommandBuffers.size(); i++) {
@@ -367,14 +344,14 @@ void HelloTriangleApplication::createSemaphores() {
 
 		command_buffer.bindVertexBuffers(
 			0,								// index of first buffer
-			{ m_VertexBuffer->m_Buffer },	// Array of buffers
+			{ static_cast<vk::Buffer>(m_VertexBuffer)},	// Array of buffers
 			{ 0 });							// Array of offsets into the buffers
-		command_buffer.bindIndexBuffer(m_IndexBuffer->m_Buffer, 0, vk::IndexType::eUint16);
+		command_buffer.bindIndexBuffer(static_cast<vk::Buffer>(m_IndexBuffer), 0, vk::IndexType::eUint16);
 
 		command_buffer.beginQuery(m_QueryPool, i, vk::QueryControlFlags());
 
 		for (int j = 0; j < m_Scene.renderObjects().size(); j++) {
-			uint32_t dynamic_offset = j * m_DynamicAllignment;
+			uint32_t dynamic_offset = j * allignment;
 			command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, { m_DescriptorSet }, { dynamic_offset });
 
 			command_buffer.drawIndexed(s_Indices.size(), 1, 0, 0, 0);
@@ -389,11 +366,11 @@ void HelloTriangleApplication::createSemaphores() {
  void HelloTriangleApplication::createGraphicsPipeline() {
 
 	//get byte code of shaders
-	auto vertShader = Shader(*m_Device, "./shaders/vert.spv", vk::ShaderStageFlagBits::eVertex);
-	auto fragShader = Shader(*m_Device, "./shaders/frag.spv", vk::ShaderStageFlagBits::eFragment);
+	Shader vertShader(static_cast<vk::Device>(m_Device), "./shaders/vert.spv", vk::ShaderStageFlagBits::eVertex);
+	Shader fragShader(static_cast<vk::Device>(m_Device), "./shaders/frag.spv", vk::ShaderStageFlagBits::eFragment);
 
 	//for later reference:
-	vk::PipelineShaderStageCreateInfo shaderStages[] = { vertShader.m_Info, fragShader.m_Info };
+	vk::PipelineShaderStageCreateInfo shaderStages[] = { vertShader.info(), fragShader.info() };
 
 	auto bindingDescription = Vertex::getBindingDescription();
 	auto attribute_descriptions = Vertex::getAttributeDescriptions();
@@ -484,7 +461,7 @@ vk::SurfaceKHR HelloTriangleApplication::createSurface(const Window& window, con
 
 	 VkSurfaceKHR surface;
 
-	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(static_cast<VkInstance>(*instance), &surface_info, nullptr, reinterpret_cast<VkSurfaceKHR*>(&surface)) != VK_SUCCESS) {
+	 if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(static_cast<VkInstance>(instance), &surface_info, nullptr, reinterpret_cast<VkSurfaceKHR*>(&surface)) != VK_SUCCESS) {
 		 throw std::runtime_error("failed to create window surface!");
 	 }
 
@@ -619,21 +596,22 @@ void HelloTriangleApplication::updateUniformBuffer()
 		m_Scene.camera().Far());
 	m_UniformBufferObject.projection[1][1] *= -1; // flip up and down
 
-	memcpy(m_UniformBuffer->map(), &m_UniformBufferObject, sizeof(m_UniformBufferObject));
-	m_UniformBuffer->unmap();
+	memcpy(m_UniformBuffer.map(), &m_UniformBufferObject, sizeof(m_UniformBufferObject));
+	m_UniformBuffer.unmap();
 }
 
 void HelloTriangleApplication::updateDynamicUniformBuffer() const
 {
+	auto allignment = dynamicAllignment(m_Device, sizeof(glm::mat4));
 	for (auto index = 0; index < m_Scene.renderObjects().size(); index++)
 	{
 		auto& render_object = m_Scene.renderObjects()[index];
-		auto model = reinterpret_cast<glm::mat4*>(reinterpret_cast<uint64_t>(m_InstanceUniformBufferObject.model) + (index * m_DynamicAllignment));
+		auto model = reinterpret_cast<glm::mat4*>(reinterpret_cast<uint64_t>(m_InstanceUniformBufferObject.model) + (index * allignment));
 		*model = translate(glm::mat4(), { render_object.x(), render_object.y(), render_object.z() });
 	}
 
-	memcpy(m_DynamicUniformBuffer->map(), m_InstanceUniformBufferObject.model, m_DynamicAllignment * m_Scene.renderObjects().size());
-	m_DynamicUniformBuffer->unmap();
+	memcpy(m_DynamicUniformBuffer.map(), m_InstanceUniformBufferObject.model, allignment * m_Scene.renderObjects().size());
+	m_DynamicUniformBuffer.unmap();
 }
 
 void HelloTriangleApplication::mainLoop() {
@@ -665,12 +643,6 @@ void HelloTriangleApplication::drawFrame() {
 
 	// Aquire image
 	auto imageResult = m_Device->acquireNextImageKHR(*m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvaliableSemaphore, vk::Fence());
-	
-	if(imageResult.result  == vk::Result::eErrorOutOfDateKHR)
-	{
-		recreateSwapChain();
-		return;
-	} 
 	
 	if(imageResult.result != vk::Result::eSuccess && imageResult.result != vk::Result::eSuboptimalKHR)
 	{
@@ -744,18 +716,7 @@ void HelloTriangleApplication::cleanup() {
 	m_Instance->destroySurfaceKHR(m_Surface);
 }
 
-void HelloTriangleApplication::recreateSwapChain()
-{
-	m_Device->waitIdle();
-
-	cleanupSwapChain();
-
-	m_SwapChain = Swapchain(m_Window, m_Surface, m_Device, m_CommandPool);
-	createGraphicsPipeline();
-	createCommandBuffers();
-}
-
-void HelloTriangleApplication::cleanupSwapChain()
+void HelloTriangleApplication::cleanupSwapChain() const
 {
 	m_Device->waitIdle();
 	
@@ -766,44 +727,6 @@ void HelloTriangleApplication::cleanupSwapChain()
 	m_Device->destroyPipeline(m_GraphicsPipeline);
 
 	m_Device->destroyPipelineLayout(m_PipelineLayout);
-}
-
-void HelloTriangleApplication::createTextureImage()
-{
-	int texWidth, texHeight, texChannels;
-	stbi_uc* pixels = stbi_load("textures/sample_image.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-
-	if (!pixels) {
-		throw std::runtime_error("Failed to load texture image!");
-	}
-	vk::DeviceSize imageSize = texWidth * texHeight * 4;
-
-	vk::BufferCreateInfo buffer_create_info;
-	buffer_create_info.setSize(imageSize)
-		.setUsage(vk::BufferUsageFlagBits::eTransferSrc);
-
-	Buffer buffer(m_Device, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible| vk::MemoryPropertyFlagBits::eHostCoherent);
-
-	memcpy(buffer.map(), pixels, imageSize);
-	buffer.unmap();
-
-	stbi_image_free(pixels);
-
-	vk::ImageCreateInfo imageCreateInfo;
-	imageCreateInfo.setImageType(vk::ImageType::e2D)
-		.setFormat(vk::Format::eR8G8B8A8Unorm)
-		.setExtent({ static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1 })
-		.setMipLevels(1)
-		.setArrayLayers(1)
-		.setUsage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled)
-		.setInitialLayout(vk::ImageLayout::eUndefined);
-
-	m_TextureImage = std::make_unique<Image>(m_Device, imageCreateInfo, vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-	m_TextureImage->changeLayout(vk::ImageLayout::eTransferDstOptimal, m_CommandPool);
-	buffer.copyToImage(*m_TextureImage, texWidth, texHeight, m_CommandPool);
-
-	//prepare to use image in shader:
-	m_TextureImage->changeLayout(vk::ImageLayout::eShaderReadOnlyOptimal, m_CommandPool);
 }
 
 

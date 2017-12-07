@@ -18,6 +18,6 @@ public:
 		return m_CommandPool;
 	}
 private:
-	Device m_Device;
+	const Device& m_Device;
 	vk::CommandPool m_CommandPool;
 };

@@ -10,7 +10,6 @@
 #endif
 
 #include <vector>
-#include <memory>
 #include "../scene-window-system/Window.h"
 #include "../scene-window-system/Scene.h"
 #include "../scene-window-system/TestConfiguration.h"
@@ -38,7 +37,8 @@ inline std::ostream& operator<<(std::ostream& lhs, const glm::vec3& rhs)
 
 class HelloTriangleApplication {
 public:
-	explicit HelloTriangleApplication(Scene scene);
+	static vk::DeviceSize dynamicBufferSize(const Scene&, const Device&);
+	explicit HelloTriangleApplication(Scene);
 
 	// Does everything!
 	void run();
@@ -72,16 +72,15 @@ private:
 	vk::Semaphore m_ImageAvaliableSemaphore;
 	vk::Semaphore m_RenderFinishedSemaphore;
 
-	std::unique_ptr<Buffer> m_VertexBuffer;
-	std::unique_ptr<Buffer> m_IndexBuffer;
-	std::unique_ptr<Buffer> m_UniformBuffer;
-	std::unique_ptr<Buffer> m_DynamicUniformBuffer;
+	Buffer m_VertexBuffer;
+	Buffer m_IndexBuffer;
+	Buffer m_UniformBuffer;
+	Buffer m_DynamicUniformBuffer;
 
 	vk::DescriptorPool m_DescriptorPool;
 	vk::DescriptorSet m_DescriptorSet;
-	std::unique_ptr<Image> m_TextureImage;
+	Image m_TextureImage;
 	vk::Sampler m_TextureSampler;
-	uint32_t m_DynamicAllignment;
 	vk::QueryPool m_QueryPool;
 	TestConfiguration m_testConfiguration;
 
@@ -89,10 +88,7 @@ private:
 	static const std::vector<Vertex> s_Vertices;
 	static const std::vector<uint16_t> s_Indices;
 
-	void createVertexBuffer();
-	void createIndexBuffer();
 	void createDescriptorSetLayout();
-	void createUniformBuffer();
 	void createDescriptorPool();
 	void createDescriptorSet();
 	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect_flags = vk::ImageAspectFlagBits::eColor) const;
@@ -140,9 +136,5 @@ private:
 	// Destroys allocated stuff gracefully
 	void cleanup();
 
-	void recreateSwapChain();
-
-	void cleanupSwapChain();
-
-	void createTextureImage();
+	void cleanupSwapChain() const;
 };

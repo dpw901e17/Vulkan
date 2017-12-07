@@ -18,20 +18,11 @@ const std::vector<const char*> Instance::s_ValidationLayers = {
 bool Instance::checkValidationLayerSupport() const
 {
 	for (auto layerName : s_ValidationLayers) {
-		auto layerFound = false;
-
-		for (const auto& layerProperties : vk::enumerateInstanceLayerProperties()) {
-			if (strcmp(layerName, layerProperties.layerName) == 0) {
-				layerFound = true;
-				break;
-			}
-		}
-
-		if (!layerFound) {
+		if(!checkSingleValidationLayerSupport(layerName))
+		{
 			return false;
 		}
 	}
-
 	return true;
 }
 
@@ -46,6 +37,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Instance::debugCallback(
 	void* userdata)
 {
 	std::cerr << "Validation Layer: " << msg << std::endl;
+	return false;
+}
+
+bool Instance::checkSingleValidationLayerSupport(const char* layer_name) const
+{
+	for (const auto& layerProperties : vk::enumerateInstanceLayerProperties()) {
+		if (strcmp(layer_name, layerProperties.layerName) == 0) {
+			return true;
+		}
+	}
 	return false;
 }
 #endif

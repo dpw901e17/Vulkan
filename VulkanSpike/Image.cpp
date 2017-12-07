@@ -1,6 +1,11 @@
 #include "Image.h"
+#include "Utility.h"
+#include <stb/stb_image.h>
+#include "Buffer.h"
 
-Image::Image(const Device& device, const vk::ImageCreateInfo& imageCreateInfo, const vk::MemoryPropertyFlags& properties, const vk::ImageAspectFlagBits& aspect_flags): m_Format(imageCreateInfo.format), m_Device(device)
+Image::Image(const Device& device, const vk::ImageCreateInfo& imageCreateInfo, const vk::MemoryPropertyFlags& properties, const vk::ImageAspectFlagBits& aspect_flags)
+	: m_Format(imageCreateInfo.format),
+	  m_Device(device)
 {
 	m_Image = device->createImage(imageCreateInfo);
 
@@ -53,10 +58,8 @@ void Image::changeLayout(const vk::ImageLayout& newLayout, const CommandPool& co
 		}
 	}
 
-	vk::PipelineStageFlags sourceStage;
-	vk::PipelineStageFlags destinationStage;
-	vk::AccessFlags source_access_mask;
-	vk::AccessFlags destination_access_mask;
+	vk::PipelineStageFlags sourceStage, destinationStage;
+	vk::AccessFlags source_access_mask, destination_access_mask;
 
 	if (m_ImageLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
 	{
@@ -102,4 +105,69 @@ void Image::changeLayout(const vk::ImageLayout& newLayout, const CommandPool& co
 	command_Pool.endSingleTimeCommands(commandBuffer);
 
 	m_ImageLayout = newLayout;
+}
+
+Image::Image(const std::string& file_path, const Device& device, const CommandPool& command_pool)
+	: m_Format(vk::Format::eR8G8B8A8Unorm), m_Device(device)
+{
+	vk::Extent2D texture_dimentions;
+	auto pixels = stbi_load(
+		"textures/sample_image.jpg", 
+		reinterpret_cast<int *>(&texture_dimentions.width), 
+		reinterpret_cast<int *>(&texture_dimentions.height), 
+		nullptr,
+		STBI_rgb_alpha);
+
+	if (!pixels) {
+		throw std::runtime_error("Failed to load texture image!");
+	}
+	auto imageSize = texture_dimentions.width * texture_dimentions.height * 4;
+
+	Buffer buffer(
+		device, 
+		vk::BufferCreateInfo()
+			.setSize(imageSize)
+			.setUsage(vk::BufferUsageFlagBits::eTransferSrc), 
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+	memcpy(buffer.map(), pixels, imageSize);
+	buffer.unmap();
+
+	stbi_image_free(pixels);
+
+	m_Image = device->createImage(
+		vk::ImageCreateInfo()
+			.setImageType(vk::ImageType::e2D)
+			.setFormat(vk::Format::eR8G8B8A8Unorm)
+			.setExtent({ texture_dimentions.width, texture_dimentions.height, 1 })
+			.setMipLevels(1)
+			.setArrayLayers(1)
+			.setUsage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled)
+			.setInitialLayout(vk::ImageLayout::eUndefined));
+
+	//copy to buffer
+	VkMemoryRequirements memRequirements = device->getImageMemoryRequirements(m_Image);
+
+	m_Memory = device->allocateMemory(
+		vk::MemoryAllocateInfo()
+			.setAllocationSize(memRequirements.size)
+			.setMemoryTypeIndex(findMemoryType(static_cast<vk::PhysicalDevice>(device), memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal)));
+
+	device->bindImageMemory(m_Image, m_Memory, 0);
+
+	m_ImageView = device->createImageView(
+		vk::ImageViewCreateInfo()
+			.setImage(m_Image)
+			.setViewType(vk::ImageViewType::e2D)
+			.setFormat(m_Format)
+			.setSubresourceRange(
+				vk::ImageSubresourceRange()
+					.setLevelCount(1)
+					.setLayerCount(1)));
+
+	changeLayout(vk::ImageLayout::eTransferDstOptimal, command_pool);
+	buffer.copyToImage(*this, texture_dimentions.width, texture_dimentions.height, command_pool);
+
+	//prepare to use image in shader:
+	changeLayout(vk::ImageLayout::eShaderReadOnlyOptimal, command_pool);
 }

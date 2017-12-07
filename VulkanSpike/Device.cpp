@@ -89,36 +89,40 @@ vk::PhysicalDevice Device::pickPhysicalDevice(const Instance& instance, const vk
 	throw std::runtime_error("failed to find suitable GPU.");
 }
 
+std::vector<vk::DeviceQueueCreateInfo> Device::findUniqueQueueFamilies(QueueFamilyIndices indices)
+{
+	std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
+	std::set<int> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
+	auto queuePriorty = 1.0f;
+
+	// Runs over each family and makes a createinfo object for them
+	for (auto queueFamily : uniqueQueueFamilies)
+	{
+		queueCreateInfos.push_back(
+			vk::DeviceQueueCreateInfo()
+			.setQueueFamilyIndex(queueFamily)
+			.setQueueCount(1)
+			.setPQueuePriorities(&queuePriorty));
+	}
+
+	return queueCreateInfos;
+}
+
 vk::Device Device::createLogicalDevice(const vk::SurfaceKHR surface, const vk::PhysicalDevice& physical_device)
 {
 	auto indices = QueueFamilyIndices::findQueueFamilies(physical_device, surface);
 
-	std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-	std::set<int> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
-	float queuePriorty = 1.0f;
-
-	// Runs over each family and makes a createinfo object for them
-	for (int queueFamily : uniqueQueueFamilies)
-	{
-		vk::DeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.queueFamilyIndex = queueFamily;
-		queueCreateInfo.queueCount = 1;
-		queueCreateInfo.pQueuePriorities = &queuePriorty; // Priority required even with 1 queue
-		queueCreateInfos.push_back(queueCreateInfo);
-	}
+	std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos = findUniqueQueueFamilies(indices);
 
 	vk::PhysicalDeviceFeatures deviceFeatures = {};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.pipelineStatisticsQuery = VK_TRUE;
 
-	// Creating VkDeviceCreateInfo object
-	vk::DeviceCreateInfo createInfo = {};
-	createInfo.queueCreateInfoCount = queueCreateInfos.size();
-	createInfo.pQueueCreateInfos = queueCreateInfos.data();
-	createInfo.pEnabledFeatures = &deviceFeatures;
-	createInfo.enabledExtensionCount = s_DeviceExtensions.size();
-	createInfo.ppEnabledExtensionNames = s_DeviceExtensions.data();
-	createInfo.enabledLayerCount = 0;
-
-	return physical_device.createDevice(createInfo);
+	return physical_device.createDevice(
+		vk::DeviceCreateInfo()
+			.setQueueCreateInfoCount(queueCreateInfos.size())
+			.setPQueueCreateInfos(queueCreateInfos.data())
+			.setPEnabledFeatures(&deviceFeatures)
+			.setEnabledExtensionCount(s_DeviceExtensions.size())
+			.setPpEnabledExtensionNames(s_DeviceExtensions.data()));
 }

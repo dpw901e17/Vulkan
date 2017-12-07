@@ -9,6 +9,7 @@ public:
 	~Shader();
 
 	Shader& operator=(const Shader&) = delete;
+	vk::PipelineShaderStageCreateInfo info() const { return m_Info; }
 private:
 	vk::PipelineShaderStageCreateInfo m_Info;
 	vk::Device m_Device;
