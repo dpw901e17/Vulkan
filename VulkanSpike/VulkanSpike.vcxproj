@@ -146,8 +146,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Buffer.cpp" />
+    <ClCompile Include="CommandPool.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="HelloTriangleApplication.cpp" />
+    <ClCompile Include="Image.cpp" />
     <ClCompile Include="Instance.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Shader.cpp" />
