@@ -15,7 +15,7 @@ public:
 private:
 	static const std::vector<const char*> s_RequiredExtensions;
 	vk::Instance m_Instance;
-#ifndef NDEBUG
+#ifdef _DEBUG
 	static const std::vector<const char*> s_ValidationLayers;
 	static VkBool32 __stdcall debugCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objType, uint64_t obj, size_t location, int32_t code, const char* layerPrefix, const char* msg, void* userdata);
 	bool checkSingleValidationLayerSupport(const char* layer_name) const;

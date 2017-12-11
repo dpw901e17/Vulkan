@@ -76,7 +76,7 @@
     <LibraryPath>C:\GLFW\glfw-3.2.1\bin\src\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>C:\VulkanSDK\1.0.57.0\Lib;C:\GLFW\glfw-3.2.1\bin\src\Release\;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\VulkanSDK\1.0.65.0\Source\lib;C:\GLFW\glfw-3.2.1\bin\src\Release\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LibraryPath>C:\VulkanSDK\1.0.57.0\Lib;C:\GLFW\glfw-3.2.1\bin\src\Release\;$(LibraryPath)</LibraryPath>
@@ -103,7 +103,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glfw3.lib;C:\VulkanSDK\1.0.65.0\Lib\vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;C:\VulkanSDK\1.0.65.0\Source\lib\vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)lib\x64</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>

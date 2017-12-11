@@ -7,7 +7,6 @@
 
 #include <windows.h>	// For Beeps included early for not redifining max
 
-#include <algorithm>
 #include <chrono>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,7 +16,6 @@
 #include <thread>		// For non blocking beeps
 #include <vulkan/vulkan.h>
 
-#include "SwapChainSupportDetails.h"
 #include "QueueFamilyIndices.h"
 #include "Vertex.h"
 #include "Shader.h"
@@ -91,8 +89,8 @@ vk::DeviceSize HelloTriangleApplication::dynamicBufferSize(const Scene& scene, c
 }
 
 HelloTriangleApplication::HelloTriangleApplication(Scene scene)
-	: m_Window(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", WIDTH, HEIGHT),
-	  m_Scene(scene),
+	: m_Scene(scene),
+	  m_Window(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", WIDTH, HEIGHT),
 	  m_Instance(),
 	  m_Surface(createSurface(m_Window, m_Instance)),
 	  m_Device(m_Instance, m_Surface),
@@ -217,23 +215,6 @@ void HelloTriangleApplication::createDescriptorSet()
 	};
 
 	m_Device->updateDescriptorSets(descriptorWrites, {});
-}
-
-vk::ImageView HelloTriangleApplication::createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect_flags) const
-{
-	vk::ImageViewCreateInfo view_info = {};
-	view_info.image = image;
-	view_info.viewType = vk::ImageViewType::e2D;
-	view_info.format = format;
-	view_info.subresourceRange.aspectMask = aspect_flags;
-	view_info.subresourceRange.baseMipLevel = 0;
-	view_info.subresourceRange.levelCount = 1;
-	view_info.subresourceRange.baseArrayLayer = 0;
-	view_info.subresourceRange.layerCount = 1;
-
-	vk::ImageView image_view = m_Device->createImageView(view_info);
-
-	return image_view;
 }
 
 void HelloTriangleApplication::createTextureSampler()
@@ -468,35 +449,6 @@ vk::SurfaceKHR HelloTriangleApplication::createSurface(const Window& window, con
 	 return vk::SurfaceKHR(surface);
 }
 
- bool HelloTriangleApplication::isDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR& surface, const QueueFamilyIndices& indices) const
- {
-	bool extensionsSupported = checkDeviceExtensionSupport(device);
-	bool swapChainAdequate = false;
-	if (extensionsSupported) {
-		auto swapChainSupport = querySwapChainSupport(device);
-		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentmodes.empty();
-	}
-
-	 auto supportedFeatures = device.getFeatures();
-
-	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
-}
-
- bool HelloTriangleApplication::checkDeviceExtensionSupport(const vk::PhysicalDevice& device)
- {
-
-	std::vector<vk::ExtensionProperties> avaliableExtensions = device.enumerateDeviceExtensionProperties();
-	
-
-	std::set<std::string> requiredExtensions(s_DeviceExtensions.begin(), s_DeviceExtensions.end());
-
-	for (const auto& extension : avaliableExtensions) {
-		requiredExtensions.erase(extension.extensionName);
-	}
-
-	return requiredExtensions.empty();
-}
-
 std::vector<const char*> getRequiredExtensions()
 {
 	std::vector<const char*> extensions = {
@@ -508,74 +460,6 @@ std::vector<const char*> getRequiredExtensions()
 	};
 
 	return extensions;
-}
-
- SwapChainSupportDetails HelloTriangleApplication::querySwapChainSupport(const vk::PhysicalDevice& device) const
- {
-	SwapChainSupportDetails details;
-	details.capabilities = device.getSurfaceCapabilitiesKHR(m_Surface);
-
-	details.formats = device.getSurfaceFormatsKHR(m_Surface);
-	
-	details.presentmodes = device.getSurfacePresentModesKHR(m_Surface);
-
-	return details;
-}
-
- vk::SurfaceFormatKHR HelloTriangleApplication::chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
-
-	//In the case the surface has no preference
-	if (availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined) {
-		return{ vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear};
-	}
-
-	// If we're not allowed to freely choose a format  
-	for (const auto& availableFormat : availableFormats) {
-		if (availableFormat.format == vk::Format::eB8G8R8A8Unorm &&
-			availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
-		{
-			return availableFormat;
-		}
-	}
-
-	return availableFormats[0];
-}
-
- vk::PresentModeKHR HelloTriangleApplication::chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes)
-{
-	vk::PresentModeKHR bestMode = vk::PresentModeKHR::eFifo;
-
-	for (const auto& availablePresentMode : availablePresentModes) {
-		if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
-			return availablePresentMode;
-		}
-		if (availablePresentMode == vk::PresentModeKHR::eImmediate) {
-			bestMode = availablePresentMode;
-		}
-	}
-
-	return bestMode;
-}
-
- vk::Extent2D HelloTriangleApplication::chooseSwapExtend(const vk::SurfaceCapabilitiesKHR & capabilities) const
- {
-	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-		return capabilities.currentExtent;
-	}
-
-	vk::Extent2D actualExtent = { m_Window.width(), m_Window.height() };
-	
-	actualExtent.width = std::max(
-		 capabilities.minImageExtent.width,
-		 std::min(capabilities.maxImageExtent.width, actualExtent.width)
-	);
-
-	actualExtent.height = std::max(
-		capabilities.minImageExtent.height,
-		std::min(capabilities.maxImageExtent.height, actualExtent.height)
-	);
-
-	 return actualExtent;
 }
 
 glm::vec3 convertToGLM(const Vec4f& vec)
@@ -699,7 +583,8 @@ void HelloTriangleApplication::drawFrame() {
 	}
 }
 
-void HelloTriangleApplication::cleanup() {
+void HelloTriangleApplication::cleanup() const
+{
 	cleanupSwapChain();
 
 	_aligned_free(m_InstanceUniformBufferObject.model);
@@ -728,5 +613,3 @@ void HelloTriangleApplication::cleanupSwapChain() const
 
 	m_Device->destroyPipelineLayout(m_PipelineLayout);
 }
-
-

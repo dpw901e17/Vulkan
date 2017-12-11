@@ -37,13 +37,13 @@ inline std::ostream& operator<<(std::ostream& lhs, const glm::vec3& rhs)
 
 class HelloTriangleApplication {
 public:
-	static vk::DeviceSize dynamicBufferSize(const Scene&, const Device&);
 	explicit HelloTriangleApplication(Scene);
 
 	// Does everything!
 	void run();
 
 private:
+	static vk::DeviceSize dynamicBufferSize(const Scene&, const Device&);
 	struct
 	{
 		glm::mat4 projection;
@@ -55,8 +55,8 @@ private:
 		glm::mat4* model = nullptr;
 	} m_InstanceUniformBufferObject;
 
-	Window m_Window;
 	Scene m_Scene;
+	Window m_Window;
 	Instance m_Instance;
 	vk::SurfaceKHR m_Surface;
 	Device m_Device;
@@ -91,7 +91,6 @@ private:
 	void createDescriptorSetLayout();
 	void createDescriptorPool();
 	void createDescriptorSet();
-	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect_flags = vk::ImageAspectFlagBits::eColor) const;
 	void createTextureSampler();
 	void createQueryPool();
 	// Initializes Vulkan
@@ -103,28 +102,8 @@ private:
 
 	void createGraphicsPipeline();
 
-	/**
-	* \brief Creates a surface for the window (GLFW handles specifics)
-	*/
 	static vk::SurfaceKHR createSurface(const Window&, const Instance&);
 
-	// Determines if the given physical device supports both Queue-families and "deviceExtensions"
-	bool isDeviceSuitable(const vk::PhysicalDevice& device, const vk::SurfaceKHR&, const QueueFamilyIndices& indices) const;
-
-	// Determines if the physical device supports all extensions in "deviceExtensions"
-	static bool checkDeviceExtensionSupport(const vk::PhysicalDevice& device);
-
-	// Queries for the capabilities of the physical device, surface format, and present mode
-	SwapChainSupportDetails querySwapChainSupport(const vk::PhysicalDevice& device) const;
-
-	// Finds and returns the optimal format (colour space + colour format).
-	static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
-
-	// Finds and returns the optimal present mode (i.e. how we write to swapchain).
-	static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
-
-	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
-	vk::Extent2D chooseSwapExtend(const vk::SurfaceCapabilitiesKHR& capabilities) const;
 	void updateUniformBuffer();
 	void updateDynamicUniformBuffer() const;
 
@@ -134,7 +113,7 @@ private:
 	void drawFrame();
 
 	// Destroys allocated stuff gracefully
-	void cleanup();
+	void cleanup() const;
 
 	void cleanupSwapChain() const;
 };

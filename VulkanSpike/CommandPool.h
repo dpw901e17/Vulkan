@@ -13,7 +13,7 @@ public:
 
 	void endSingleTimeCommands(const vk::CommandBuffer& command_buffer) const;
 
-	explicit operator vk::CommandPool()
+	explicit operator vk::CommandPool() const
 	{
 		return m_CommandPool;
 	}

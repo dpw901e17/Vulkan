@@ -162,6 +162,7 @@ Image::Image(const std::string& file_path, const Device& device, const CommandPo
 			.setFormat(m_Format)
 			.setSubresourceRange(
 				vk::ImageSubresourceRange()
+					.setAspectMask(vk::ImageAspectFlagBits::eColor)
 					.setLevelCount(1)
 					.setLayerCount(1)));
 

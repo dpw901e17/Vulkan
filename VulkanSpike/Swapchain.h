@@ -30,7 +30,7 @@ private:
 	static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
 	static vk::Extent2D chooseSwapExtend(const Window& window, const vk::SurfaceCapabilitiesKHR& capabilities);
 	static std::vector<vk::ImageView> createImageViews(const Device&, const std::vector<vk::Image>&, const vk::Format&);
-	vk::SwapchainKHR createSwapchain(const vk::SurfaceKHR&, const SwapChainSupportDetails&, const vk::SurfaceFormatKHR&, const vk::PresentModeKHR&);
+	vk::SwapchainKHR createSwapchain(const vk::SurfaceKHR&, const SwapChainSupportDetails&, const vk::SurfaceFormatKHR&, const vk::PresentModeKHR&) const;
 	static vk::RenderPass createRenderPass(const Device& device, const vk::Format&);
 	std::vector<vk::Framebuffer> createFramebuffers(const Image& depth_image);
 
@@ -42,4 +42,5 @@ private:
 	std::vector<vk::ImageView> m_ImageViews;
 	std::vector<vk::Framebuffer> m_Framebuffers;
 	vk::RenderPass m_RenderPass;
+	Image m_DepthImage;
 };

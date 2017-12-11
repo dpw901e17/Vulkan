@@ -5,13 +5,14 @@
 const std::vector<const char*> Instance::s_RequiredExtensions = {
 	VK_KHR_SURFACE_EXTENSION_NAME,
 	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
-#ifndef NDEBUG
+#ifdef _DEBUG
 	VK_EXT_DEBUG_REPORT_EXTENSION_NAME
 #endif
 };
 
-#ifndef NDEBUG
+#ifdef _DEBUG
 const std::vector<const char*> Instance::s_ValidationLayers = {
+	//"VK_LAYER_LUNARG_api_dump",
 	"VK_LAYER_LUNARG_standard_validation"
 };
 
@@ -62,7 +63,7 @@ Instance::Instance()
 		.setEnabledExtensionCount(s_RequiredExtensions.size())
 		.setPpEnabledExtensionNames(s_RequiredExtensions.data());
 
-#ifndef NDEBUG
+#ifdef _DEBUG
 	if (!checkValidationLayerSupport()) {
 		throw std::runtime_error("validation layers requested, but not available!");
 	}
@@ -71,7 +72,7 @@ Instance::Instance()
 #endif
 	m_Instance = createInstance(instance_info);
 
-#ifndef NDEBUG
+#ifdef _DEBUG
 	VkDebugReportCallbackCreateInfoEXT callback_info = {};
 	callback_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
 	callback_info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
@@ -87,7 +88,7 @@ Instance::Instance()
 
 Instance::~Instance()
 {
-#ifndef NDEBUG
+#ifdef _DEBUG
 	DestroyDebugReportCallbackEXT(static_cast<VkInstance>(m_Instance), m_Callback);
 #endif
 	m_Instance.destroy();
