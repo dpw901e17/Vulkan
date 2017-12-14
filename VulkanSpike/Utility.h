@@ -17,6 +17,14 @@ struct PipelineStatisticsResult
 		computeShaderInvocations;
 };
 
+static void SaveToFile(const std::string& file, const std::string& data)
+{
+	std::ofstream fs;
+	fs.open(file, std::ofstream::app);
+	fs << data;
+	fs.close();
+}
+
 static std::vector<char> readFile(const std::string& filename) {
 
 	//ate: read from the end of file

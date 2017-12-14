@@ -23,9 +23,6 @@
 #include "Shader.h"
 #include "Image.h"
 
-const int WIDTH = 800;
-const int HEIGHT = 600;
-
 const std::vector<const char*> HelloTriangleApplication::s_DeviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
@@ -72,8 +69,8 @@ const std::vector<uint16_t>HelloTriangleApplication::s_Indices = {
 	4 * 5 + 0, 4 * 5 + 1, 4 * 5 + 2, 4 * 5 + 2, 4 * 5 + 3, 4 * 5 + 0  // Bottom
 };
 
-HelloTriangleApplication::HelloTriangleApplication(Scene scene) 
-	: m_Window(GetModuleHandle(nullptr), "VulkanTest", "Vulkan Test", WIDTH, HEIGHT), 
+HelloTriangleApplication::HelloTriangleApplication(Scene scene, Window& win)
+	: m_Window(win), 
 	  m_Scene(scene),
 	  m_Instance()
 {
@@ -408,62 +405,72 @@ void HelloTriangleApplication::createSemaphores() {
 	allocInfo.commandBufferCount = m_CommandBuffers.size();
 
 	m_CommandBuffers = m_LogicalDevice.allocateCommandBuffers(allocInfo);
-
-	//begin recording process:
-	for (size_t i = 0; i < m_CommandBuffers.size(); i++) {
-		auto& command_buffer = m_CommandBuffers[i];
-
-		vk::CommandBufferBeginInfo beginInfo = {};
-		beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-
-		command_buffer.begin(beginInfo);
-
-		//starting render pass:
-		vk::RenderPassBeginInfo renderPassInfo = {};
-		renderPassInfo.renderPass = m_RenderPass;
-		renderPassInfo.framebuffer = m_SwapChainFramebuffers[i];
-
-		renderPassInfo.renderArea.offset = vk::Offset2D{ 0,0 };
-		renderPassInfo.renderArea.extent = m_SwapChainExtent;
-
-		std::array<vk::ClearValue, 2> clear_values = {};
-		clear_values[0].color = vk::ClearColorValue(std::array<float, 4>{0.2f, 0.3f, 0.8f, 1.0f});
-		clear_values[1].depthStencil = vk::ClearDepthStencilValue{1.0f, 0};
-
-		renderPassInfo.clearValueCount = clear_values.size();
-		renderPassInfo.pClearValues = clear_values.data();
-
-		command_buffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
-
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
-
-		command_buffer.bindVertexBuffers(
-			0,								// index of first buffer
-			{ m_VertexBuffer->m_Buffer },	// Array of buffers
-			{ 0 });							// Array of offsets into the buffers
-		command_buffer.bindIndexBuffer(m_IndexBuffer->m_Buffer, 0, vk::IndexType::eUint16);
-
-		command_buffer.beginQuery(m_QueryPool, i, vk::QueryControlFlags());
-
-		for (int j = 0; j < m_Scene.renderObjects().size(); j++) {
-			uint32_t dynamic_offset = j * m_DynamicAllignment;
-			command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, { m_DescriptorSet }, { dynamic_offset });
-
-			command_buffer.drawIndexed(s_Indices.size(), 1, 0, 0, 0);
-		}
-
-		command_buffer.endQuery(m_QueryPool, i);
-		command_buffer.endRenderPass();
-		command_buffer.end();
-	}
+	recordCommandBuffers();
 }
+
+ void HelloTriangleApplication::recordCommandBuffers() {
+	 for (size_t i = 0; i < m_CommandBuffers.size(); i++) {
+		 auto& command_buffer = m_CommandBuffers[i];
+
+		 command_buffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+
+		 vk::CommandBufferBeginInfo beginInfo = {};
+		 beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+
+		 command_buffer.begin(beginInfo);
+
+		 //starting render pass:
+		 vk::RenderPassBeginInfo renderPassInfo = {};
+		 renderPassInfo.renderPass = m_RenderPass;
+		 renderPassInfo.framebuffer = m_SwapChainFramebuffers[i];
+
+		 renderPassInfo.renderArea.offset = vk::Offset2D{ 0,0 };
+		 renderPassInfo.renderArea.extent = m_SwapChainExtent;
+
+		 std::array<vk::ClearValue, 2> clear_values = {};
+		 clear_values[0].color = vk::ClearColorValue(std::array<float, 4>{0.2f, 0.3f, 0.8f, 1.0f});
+		 clear_values[1].depthStencil = vk::ClearDepthStencilValue{ 1.0f, 0 };
+
+		 renderPassInfo.clearValueCount = clear_values.size();
+		 renderPassInfo.pClearValues = clear_values.data();
+
+		 command_buffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+
+		 command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
+
+		 command_buffer.bindVertexBuffers(
+			 0,								// index of first buffer
+			 { m_VertexBuffer->m_Buffer },	// Array of buffers
+			 { 0 });							// Array of offsets into the buffers
+		 command_buffer.bindIndexBuffer(m_IndexBuffer->m_Buffer, 0, vk::IndexType::eUint16);
+
+		 command_buffer.beginQuery(m_QueryPool, i, vk::QueryControlFlags());
+
+		 for (int j = 0; j < m_Scene.renderObjects().size(); j++) {
+			 uint32_t dynamic_offset = j * m_DynamicAllignment;
+			 command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, { m_DescriptorSet }, { dynamic_offset });
+
+			 command_buffer.drawIndexed(s_Indices.size(), 1, 0, 0, 0);
+		 }
+
+		 command_buffer.endQuery(m_QueryPool, i);
+		 command_buffer.endRenderPass();
+		 command_buffer.end();
+	 }
+ }
 
  void HelloTriangleApplication::createCommandPool() {
 	QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_PhysicalDevice);
 
 	vk::CommandPoolCreateInfo poolInfo = {};
 	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
-	poolInfo.flags = vk::CommandPoolCreateFlags(); //optional about rerecording strategy of cmd buffer(s)
+
+	if (TestConfiguration::GetInstance().reuseCommandBuffers) {
+		poolInfo.flags = vk::CommandPoolCreateFlags(); //optional about rerecording strategy of cmd buffer(s)
+	}
+	else {
+		poolInfo.flags =vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
+	}
 
 	m_CommandPool = m_LogicalDevice.createCommandPool(poolInfo);
 }
@@ -941,7 +948,9 @@ void HelloTriangleApplication::mainLoop() {
 	WMIAccessor wmiAccesor;
 	_bstr_t probeProperties[] = { "Identifier", "Value", "SensorType" };
 
-	if (TestConfiguration::GetInstance().openHardwareMonitorData) {
+	auto& testConfig = TestConfiguration::GetInstance();
+
+	if (testConfig.openHardwareMonitorData) {
 		wmiAccesor.Connect("OpenHardwareMonitor");
 	}
 
@@ -949,7 +958,7 @@ void HelloTriangleApplication::mainLoop() {
 	int oldfps = 0;	//<-- this one is recorded by the probe (and set once per second)
 	size_t secondTrackerInNanoSec = 0;
 
-	while (true)
+	while ((nanoSec / 1000000000 < testConfig.seconds) || (testConfig.seconds == 0))
 	{
 		MSG message;
 		if (PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
@@ -978,8 +987,8 @@ void HelloTriangleApplication::mainLoop() {
 				fps = 0;
 			}
 
-			if (TestConfiguration::GetInstance().openHardwareMonitorData &&
-				nanoSec / 1000000 > probeCount * TestConfiguration::GetInstance().probeInterval)
+			if (testConfig.openHardwareMonitorData &&
+				nanoSec / 1000000 > probeCount * testConfig.probeInterval)
 			{
 				//QueryItem queries one item from WMI, which is separated into multiple items (put in a vector here)
 				auto items = wmiAccesor.QueryItem("sensor", probeProperties, 3);
@@ -1002,14 +1011,67 @@ void HelloTriangleApplication::mainLoop() {
 
 			updateDynamicUniformBuffer();
 
+			if (!testConfig.reuseCommandBuffers) {
+				recordCommandBuffers();
+			}
+
 			drawFrame();
 			++fps;
 		}
 	}
 
-
-
 	m_LogicalDevice.waitIdle();
+
+	if (testConfig.pipelineStatistics) {
+		PipelineStatisticsDataItem item;
+		item.CInvocations = std::to_string(m_QueryResults.clippingInvocations);
+		item.CommandListId = "0";
+		item.CPrimitives = std::to_string(m_QueryResults.clippingPrimitives);
+		item.CSInvocations = std::to_string(m_QueryResults.computeShaderInvocations);
+		item.DSInvocations = "N/A";
+		item.GSInvocations = std::to_string(m_QueryResults.geometryShaderInvocations);
+		item.GSPrimitives = std::to_string(m_QueryResults.geometryShaderPrimitives);
+		item.HSInvocations = "N/A";
+		item.IAPrimitives = std::to_string(m_QueryResults.inputAssemblyPrimitives);
+		item.IAVertices = std::to_string(m_QueryResults.inputAssemblyVertices);
+		item.PSInvocations = std::to_string(m_QueryResults.fragmentShaderInvocations);
+		item.VSInvocations = std::to_string(m_QueryResults.vertexShaderInvocations);
+
+		pipelineStatisticsCollection.Add(item);
+	}
+
+	//save files
+	auto now = time(NULL);
+	tm* localNow = new tm();
+	localtime_s(localNow, &now);
+
+	auto yearStr = std::to_string((1900 + localNow->tm_year));
+	auto monthStr = localNow->tm_mon < 9 ? "0" + std::to_string(localNow->tm_mon + 1) : std::to_string(localNow->tm_mon + 1);
+	auto dayStr = localNow->tm_mday < 10 ? "0" + std::to_string(localNow->tm_mday) : std::to_string(localNow->tm_mday);
+	auto hourStr = localNow->tm_hour < 10 ? "0" + std::to_string(localNow->tm_hour) : std::to_string(localNow->tm_hour);
+	auto minStr = localNow->tm_min < 10 ? "0" + std::to_string(localNow->tm_min) : std::to_string(localNow->tm_min);
+	auto secStr = localNow->tm_sec < 10 ? "0" + std::to_string(localNow->tm_sec) : std::to_string(localNow->tm_sec);
+
+	auto fname = yearStr + monthStr + dayStr + hourStr + minStr + secStr;
+
+	if (testConfig.exportCsv && testConfig.openHardwareMonitorData) {
+
+		auto csvStr = wmiCollection.MakeString(";");
+		SaveToFile("data_" + fname + ".csv", csvStr);
+	}
+
+	if (testConfig.exportCsv && testConfig.pipelineStatistics) {
+		auto csvStr = pipelineStatisticsCollection.MakeString(";");
+		SaveToFile("stat_" + fname + ".csv", csvStr);
+	}
+
+	if (testConfig.exportCsv) {
+		auto csvStr = testConfig.MakeString(";");
+		SaveToFile("conf_" + fname + ".csv", csvStr);
+	}
+
+	delete localNow;
+
 }
 
 void HelloTriangleApplication::drawFrame() {
@@ -1065,18 +1127,18 @@ void HelloTriangleApplication::drawFrame() {
 	m_PresentQueue.presentKHR(presentInfo);
 	m_PresentQueue.waitIdle();
 
-	PipelineStatisticsResult queryResults;
-
-	if(m_LogicalDevice.getQueryPoolResults(
-		m_QueryPool, 
-		imageResult.value, 
-		1, 
-		sizeof queryResults, 
-		&queryResults, 
-		sizeof uint64_t, 
-		vk::QueryResultFlagBits::eWait | vk::QueryResultFlagBits::e64) != vk::Result::eSuccess)
-	{
-		throw std::runtime_error("Failed get the query results from the logical device");
+	if (TestConfiguration::GetInstance().pipelineStatistics) {
+		if(m_LogicalDevice.getQueryPoolResults(
+			m_QueryPool, 
+			imageResult.value, 
+			1, 
+			sizeof m_QueryResults, 
+			&m_QueryResults, 
+			sizeof uint64_t, 
+			vk::QueryResultFlagBits::eWait | vk::QueryResultFlagBits::e64) != vk::Result::eSuccess)
+		{
+			throw std::runtime_error("Failed get the query results from the logical device");
+		}
 	}
 }
 

@@ -36,7 +36,7 @@ inline std::ostream& operator<<(std::ostream& lhs, const glm::vec3& rhs)
 
 class HelloTriangleApplication {
 public:
-	explicit HelloTriangleApplication(Scene scene);
+	explicit HelloTriangleApplication(Scene scene, Window& win);
 
 	// Does everything!
 	void run();
@@ -92,6 +92,7 @@ private:
 	std::unique_ptr<Image> m_DepthImage;
 	uint32_t m_DynamicAllignment;
 	vk::QueryPool m_QueryPool;
+	PipelineStatisticsResult m_QueryResults;
 
 	DataCollection<WMIDataItem> wmiCollection;
 	DataCollection<PipelineStatisticsDataItem> pipelineStatisticsCollection;
@@ -186,4 +187,6 @@ private:
 	void endSingleTimeCommands(vk::CommandBuffer commandBuffer);
 	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
 	void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height);
+
+	void recordCommandBuffers();
 };
