@@ -932,6 +932,23 @@ void HelloTriangleApplication::updateDynamicUniformBuffer() const
 
 void HelloTriangleApplication::mainLoop() {
 
+	using Clock = std::chrono::high_resolution_clock;
+
+	size_t nanoSec = 0;
+	size_t probeCount = 0;
+	auto lastUpdate = Clock::now();
+
+	WMIAccessor wmiAccesor;
+	_bstr_t probeProperties[] = { "Identifier", "Value", "SensorType" };
+
+	if (TestConfiguration::GetInstance().openHardwareMonitorData) {
+		wmiAccesor.Connect("OpenHardwareMonitor");
+	}
+
+	int fps = 0;	//<-- this one is incremented each frame (and reset once a second)
+	int oldfps = 0;	//<-- this one is recorded by the probe (and set once per second)
+	size_t secondTrackerInNanoSec = 0;
+
 	while (true)
 	{
 		MSG message;
@@ -945,13 +962,53 @@ void HelloTriangleApplication::mainLoop() {
 		}
 		else
 		{
+			//**************************************************
+			auto delta = std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - lastUpdate).count();
+			nanoSec += delta;
+			secondTrackerInNanoSec += delta;
+			lastUpdate = Clock::now();
+
+			//has a (multiplicia of) second(s) passed?
+			if (secondTrackerInNanoSec > 1000000000) {
+				auto title = "FPS: " + std::to_string(fps);
+		
+				m_Window.SetTitle(title.c_str());
+				secondTrackerInNanoSec %= 1000000000;
+				oldfps = fps;
+				fps = 0;
+			}
+
+			if (TestConfiguration::GetInstance().openHardwareMonitorData &&
+				nanoSec / 1000000 > probeCount * TestConfiguration::GetInstance().probeInterval)
+			{
+				//QueryItem queries one item from WMI, which is separated into multiple items (put in a vector here)
+				auto items = wmiAccesor.QueryItem("sensor", probeProperties, 3);
+
+				//each item needs a timestamp and an id ( = probeCount) and the last completely measured FPS
+				for (auto& item : items) {
+					item.Timestamp = std::to_string(nanoSec);
+					item.Id = std::to_string(probeCount);
+					item.FPS = std::to_string(oldfps);
+					wmiCollection.Add(item);
+				}
+
+				++probeCount;
+			}
+
+			//**************************************************
+
+
 			updateUniformBuffer();
 
 			updateDynamicUniformBuffer();
 
 			drawFrame();
+			++fps;
 		}
 	}
+
+
+
 	m_LogicalDevice.waitIdle();
 }
 

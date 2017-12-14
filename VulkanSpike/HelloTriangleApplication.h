@@ -14,6 +14,7 @@
 #include "../scene-window-system/Window.h"
 #include "../scene-window-system/Scene.h"
 #include "../scene-window-system/TestConfiguration.h"
+#include "../scene-window-system/WmiAccess.h"
 #include <glm/glm.hpp>
 
 #include "Buffer.h"
@@ -91,7 +92,9 @@ private:
 	std::unique_ptr<Image> m_DepthImage;
 	uint32_t m_DynamicAllignment;
 	vk::QueryPool m_QueryPool;
-	TestConfiguration m_testConfiguration;
+
+	DataCollection<WMIDataItem> wmiCollection;
+	DataCollection<PipelineStatisticsDataItem> pipelineStatisticsCollection;
 
 	static const std::vector<const char*> s_DeviceExtensions;
 	static const std::vector<Vertex> s_Vertices;
