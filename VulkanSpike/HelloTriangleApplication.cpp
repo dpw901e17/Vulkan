@@ -1157,7 +1157,12 @@ void HelloTriangleApplication::cleanup() {
 	m_LogicalDevice.destroyCommandPool(m_CommandPool);
 
 	m_LogicalDevice.destroyQueryPool(m_QueryPool);
-
+	m_VertexBuffer = nullptr;
+	m_IndexBuffer = nullptr;
+	m_UniformBuffer = nullptr;
+	m_DynamicUniformBuffer = nullptr;
+	m_TextureImage = nullptr;
+	m_DepthImage = nullptr;
 	//this->~HelloTriangleApplication(); // HACK: Ensures that the buffers are destroyed before the vulkan instance
 	m_LogicalDevice.destroy();
 	m_Instance->destroySurfaceKHR(m_Surface);
