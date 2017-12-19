@@ -1,5 +1,5 @@
 #version 450
-#extension GL_ARB_separate_shader_objects : enable //<-- needs to be there for Vulkan to work
+#extension GL_ARB_separate_shader_objects : enable 
 
 layout(binding = 0) uniform UniformBufferObjectView {
   mat4 projection;
@@ -17,7 +17,7 @@ layout(location = 2) in vec2 inTexCoord;
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
 
-//output to be sent through the entire rest of pipeline.
+
 out gl_PerVertex {
 	vec4 gl_Position;
 };

@@ -14,5 +14,5 @@ int main(int argc, char *argv[]) {
 	TestConfiguration::SetTestConfiguration(arg.str().c_str());
 	auto& conf = TestConfiguration::GetInstance();
 	runVulkanTest();
-	//system("pause");
+	
 }
