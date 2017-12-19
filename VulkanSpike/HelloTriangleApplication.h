@@ -15,6 +15,7 @@
 #include "../scene-window-system/Scene.h"
 #include "../scene-window-system/TestConfiguration.h"
 #include "../scene-window-system/WmiAccess.h"
+#include "../scene-window-system/ThreadPool.h"
 #include <glm/glm.hpp>
 
 #include "Buffer.h"
@@ -74,14 +75,19 @@ private:
 	vk::PipelineLayout m_PipelineLayout;
 	vk::Pipeline m_GraphicsPipeline;
 
-	vk::CommandPool m_CommandPool;
-	std::vector<vk::CommandBuffer> m_CommandBuffers;
+	vk::CommandPool m_SingleTimeCommandPool;
+	vk::CommandPool m_StartCommandPool;
+	std::vector<vk::CommandPool> m_CommandPool;
+	std::vector<vk::CommandBuffer> m_DrawCommandBuffers;
+	std::vector<vk::CommandBuffer> m_StartCommandBuffers;	//<-- one for each frame image
 
 	vk::Semaphore m_ImageAvaliableSemaphore;
 	vk::Semaphore m_RenderFinishedSemaphore;
 
+
 	std::unique_ptr<Buffer> m_VertexBuffer;
 	std::unique_ptr<Buffer> m_IndexBuffer;
+	
 	std::unique_ptr<Buffer> m_UniformBuffer;
 	std::unique_ptr<Buffer> m_DynamicUniformBuffer;
 
@@ -92,10 +98,12 @@ private:
 	std::unique_ptr<Image> m_DepthImage;
 	uint32_t m_DynamicAllignment;
 	vk::QueryPool m_QueryPool;
-	PipelineStatisticsResult m_QueryResults;
+	std::vector<PipelineStatisticsResult> m_QueryResults;
 
 	DataCollection<WMIDataItem> wmiCollection;
 	DataCollection<PipelineStatisticsDataItem> pipelineStatisticsCollection;
+
+	ThreadPool<DrawRenderObjectsInfo>* m_ThreadPool;
 
 	static const std::vector<const char*> s_DeviceExtensions;
 	static const std::vector<Vertex> s_Vertices;
@@ -118,7 +126,7 @@ private:
 
 	void createSemaphores();
 
-	void createCommandBuffers();
+	void createCommandBuffer();
 
 	void createCommandPool();
 
@@ -188,5 +196,6 @@ private:
 	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
 	void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height);
 
-	void recordCommandBuffers();
+	void recordCommandBuffers(uint32_t frameIndex);
+	static void DrawRenderObjects(DrawRenderObjectsInfo& info);
 };

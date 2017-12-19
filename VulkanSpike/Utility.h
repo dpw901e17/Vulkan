@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <fstream>
+#include "../scene-window-system/RenderObject.h"
 
 struct PipelineStatisticsResult
 {
@@ -15,6 +16,27 @@ struct PipelineStatisticsResult
 		tesselationControlShaderPatches,
 		tesselationEvaluationShaderInvocations,
 		computeShaderInvocations;
+};
+
+struct DrawRenderObjectsInfo
+{
+	const RenderObject* roArr = nullptr;
+	size_t roArrCount = 0;
+	size_t roArrStride = 0;	//<-- the last thread can have a difference between count and stride
+	uint32_t dynamicAllignment;
+	vk::CommandBuffer* commandBuffer;
+	uint32_t numOfIndices = 0;
+	vk::PipelineLayout* pipelineLayout;
+	vk::DescriptorSet* descriptorSet;
+	vk::QueryPool* queryPool;
+	uint32_t frameIndex;
+	uint32_t threadId;
+	vk::RenderPass* renderPass;
+	vk::RenderPassBeginInfo* renderPassBeginInfo;
+	vk::Pipeline* pipeline;
+	vk::Buffer* vertexBuffer;
+	vk::Buffer* indexBuffer;
+	vk::Framebuffer* framebuffer;
 };
 
 static void SaveToFile(const std::string& file, const std::string& data)

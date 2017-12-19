@@ -78,6 +78,10 @@ HelloTriangleApplication::HelloTriangleApplication(Scene scene, Window& win)
 
 void HelloTriangleApplication::run()
 {
+	auto threadCount = TestConfiguration::GetInstance().drawThreadCount;
+	m_ThreadPool = new ThreadPool<DrawRenderObjectsInfo>(threadCount);
+	m_QueryResults.resize(threadCount);
+
 	initVulkan();
 #ifndef NDEBUG
 	updateUniformBuffer();
@@ -344,7 +348,7 @@ void HelloTriangleApplication::createQueryPool()
 	vk::QueryPoolCreateInfo query_pool_create_info;
 	query_pool_create_info
 		.setQueryType(vk::QueryType::ePipelineStatistics)
-		.setQueryCount(m_SwapChainFramebuffers.size())
+		.setQueryCount(TestConfiguration::GetInstance().drawThreadCount)
 		.setPipelineStatistics(
 			vk::QueryPipelineStatisticFlagBits::eClippingInvocations |
 			vk::QueryPipelineStatisticFlagBits::eClippingPrimitives |
@@ -383,7 +387,7 @@ void HelloTriangleApplication::initVulkan() {
 	createDescriptorPool();
 	createDescriptorSet();
 	createQueryPool();
-	createCommandBuffers();
+	createCommandBuffer();
 	createSemaphores();
 }
 
@@ -394,69 +398,189 @@ void HelloTriangleApplication::createSemaphores() {
 	m_RenderFinishedSemaphore = m_LogicalDevice.createSemaphore(semaphoreInfo);
 }
 
- void HelloTriangleApplication::createCommandBuffers() {
-	m_CommandBuffers.resize(m_SwapChainFramebuffers.size());
-
+ void HelloTriangleApplication::createCommandBuffer() {
+	 auto threadCount = TestConfiguration::GetInstance().drawThreadCount;
+	 //one command buffer per frame buffer per thread:
+	m_DrawCommandBuffers.resize(m_SwapChainFramebuffers.size() * threadCount);
+	m_StartCommandBuffers.resize(m_SwapChainFramebuffers.size());
 	//allocate room for buffers in command pool:
 
 	vk::CommandBufferAllocateInfo allocInfo = {};
-	allocInfo.commandPool = m_CommandPool;
-	allocInfo.level = vk::CommandBufferLevel::ePrimary; //buffers can be primary (called to by user) or secondary (called to by primary buffer)
-	allocInfo.commandBufferCount = m_CommandBuffers.size();
+	allocInfo.level = vk::CommandBufferLevel::eSecondary; //buffers can be primary (called to by user) or secondary (called to by primary buffer)
+	allocInfo.commandBufferCount = m_SwapChainFramebuffers.size();
 
-	m_CommandBuffers = m_LogicalDevice.allocateCommandBuffers(allocInfo);
-	recordCommandBuffers();
+	auto bufferCount = m_DrawCommandBuffers.size();
+	for (auto i = 0; i < bufferCount; ++i) {
+		allocInfo.commandPool = m_CommandPool[i % threadCount];
+		auto& cmdBufVec = m_LogicalDevice.allocateCommandBuffers(allocInfo);
+		for (auto& cmdBuf : cmdBufVec) {
+			m_DrawCommandBuffers[i] = cmdBuf;
+		}
+	}
+
+	vk::CommandBufferAllocateInfo startAllocInfo = {};
+	startAllocInfo.commandPool = m_StartCommandPool;
+	startAllocInfo.level = vk::CommandBufferLevel::ePrimary;
+	startAllocInfo.commandBufferCount = m_SwapChainFramebuffers.size();
+
+	m_StartCommandBuffers = m_LogicalDevice.allocateCommandBuffers(startAllocInfo);
+
+	for (auto i = 0; i < m_SwapChainFramebuffers.size(); ++i) {
+		recordCommandBuffers(i);
+	}
 }
 
- void HelloTriangleApplication::recordCommandBuffers() {
-	 for (size_t i = 0; i < m_CommandBuffers.size(); i++) {
-		 auto& command_buffer = m_CommandBuffers[i];
+ void HelloTriangleApplication::recordCommandBuffers(uint32_t frameIndex) {
 
-		 command_buffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+	 //starting render pass:
+	 vk::RenderPassBeginInfo startRenderPassInfo = {};
+	 startRenderPassInfo.renderPass = m_RenderPass;
+	 startRenderPassInfo.framebuffer = m_SwapChainFramebuffers[frameIndex];
 
-		 vk::CommandBufferBeginInfo beginInfo = {};
-		 beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+	 startRenderPassInfo.renderArea.offset = vk::Offset2D{ 0,0 };
+	 startRenderPassInfo.renderArea.extent = m_SwapChainExtent;
 
-		 command_buffer.begin(beginInfo);
+	 std::array<vk::ClearValue, 2> start_clear_values = {};
+	 start_clear_values[0].color = vk::ClearColorValue(std::array<float, 4>{1.0f, 0.0f, 0.0f, 1.0f});
+	 start_clear_values[1].depthStencil = vk::ClearDepthStencilValue{ 1.0f, 0 };
 
-		 //starting render pass:
-		 vk::RenderPassBeginInfo renderPassInfo = {};
-		 renderPassInfo.renderPass = m_RenderPass;
-		 renderPassInfo.framebuffer = m_SwapChainFramebuffers[i];
+	 startRenderPassInfo.clearValueCount = start_clear_values.size();
+	 startRenderPassInfo.pClearValues = start_clear_values.data();	
 
-		 renderPassInfo.renderArea.offset = vk::Offset2D{ 0,0 };
-		 renderPassInfo.renderArea.extent = m_SwapChainExtent;
+	 vk::RenderPassBeginInfo drawRenderPassInfo = {};
+	 drawRenderPassInfo.renderPass = m_RenderPass;
+	 drawRenderPassInfo.framebuffer = m_SwapChainFramebuffers[frameIndex];
+	 drawRenderPassInfo.renderArea.offset = vk::Offset2D{ 0,0 };
+	 drawRenderPassInfo.renderArea.extent = m_SwapChainExtent;
+	 
+	 std::array<vk::ClearValue, 2> draw_clear_values = {};
+	 draw_clear_values[0].color = vk::ClearColorValue(std::array<float, 4>{0.0f, 1.0f, 0.0f, 1.0f});
+	 draw_clear_values[1].depthStencil = vk::ClearDepthStencilValue{ 1.0f, 0 };
 
-		 std::array<vk::ClearValue, 2> clear_values = {};
-		 clear_values[0].color = vk::ClearColorValue(std::array<float, 4>{0.2f, 0.3f, 0.8f, 1.0f});
-		 clear_values[1].depthStencil = vk::ClearDepthStencilValue{ 1.0f, 0 };
+	 drawRenderPassInfo.clearValueCount = draw_clear_values.size();
+	 drawRenderPassInfo.pClearValues = draw_clear_values.data();
 
-		 renderPassInfo.clearValueCount = clear_values.size();
-		 renderPassInfo.pClearValues = clear_values.data();
+	 vk::CommandBufferBeginInfo beginInfo = {};
+	 beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
 
-		 command_buffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+	 /***********************************************************************************/
+	 //Thread recording of draw commands:
+	 auto threadCount = TestConfiguration::GetInstance().drawThreadCount;
+	 for (auto i = 0; i < threadCount; ++i) {
+		 DrawRenderObjectsInfo drawROInfo = {};
 
-		 command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
+		 auto& command_buffer = m_DrawCommandBuffers[frameIndex * threadCount + i];
+		 auto roCount = m_Scene.renderObjects().size() / threadCount;
 
-		 command_buffer.bindVertexBuffers(
-			 0,								// index of first buffer
-			 { m_VertexBuffer->m_Buffer },	// Array of buffers
-			 { 0 });							// Array of offsets into the buffers
-		 command_buffer.bindIndexBuffer(m_IndexBuffer->m_Buffer, 0, vk::IndexType::eUint16);
+		 drawROInfo.roArrStride = roCount;
 
-		 command_buffer.beginQuery(m_QueryPool, i, vk::QueryControlFlags());
-
-		 for (int j = 0; j < m_Scene.renderObjects().size(); j++) {
-			 uint32_t dynamic_offset = j * m_DynamicAllignment;
-			 command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, { m_DescriptorSet }, { dynamic_offset });
-
-			 command_buffer.drawIndexed(s_Indices.size(), 1, 0, 0, 0);
+		 //last thread handles the remainder after integer division
+		 if (i == threadCount - 1) {
+			 roCount += m_Scene.renderObjects().size() % threadCount;
 		 }
 
-		 command_buffer.endQuery(m_QueryPool, i);
-		 command_buffer.endRenderPass();
-		 command_buffer.end();
+		 drawROInfo.commandBuffer = &command_buffer;
+		 drawROInfo.descriptorSet = &m_DescriptorSet;
+		 drawROInfo.dynamicAllignment = m_DynamicAllignment;
+		 drawROInfo.numOfIndices = s_Indices.size();
+		 drawROInfo.pipelineLayout = &m_PipelineLayout;
+		 drawROInfo.roArr = &m_Scene.renderObjects()[i * roCount];
+		 drawROInfo.roArrCount = roCount;
+		 drawROInfo.frameIndex = frameIndex;
+		 drawROInfo.queryPool = &m_QueryPool;
+		 drawROInfo.threadId = i;
+		 drawROInfo.renderPass = &m_RenderPass;
+		 drawROInfo.renderPassBeginInfo = &drawRenderPassInfo;
+		 drawROInfo.pipeline = &m_GraphicsPipeline;
+		 drawROInfo.vertexBuffer = &m_VertexBuffer->m_Buffer;
+		 drawROInfo.indexBuffer = &m_IndexBuffer->m_Buffer;
+		 drawROInfo.framebuffer = &m_SwapChainFramebuffers[frameIndex];
+
+		 ThreadJob<DrawRenderObjectsInfo> job = ThreadJob<DrawRenderObjectsInfo>(DrawRenderObjects, drawROInfo);
+		 m_ThreadPool->AddThreadJob(job);
 	 }
+	 /***********************************************************************************/
+
+	 //record setup:	 
+	 auto& startCommandBuffer = m_StartCommandBuffers[frameIndex];
+	 startCommandBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+	 startCommandBuffer.begin(beginInfo);
+	 startCommandBuffer.beginRenderPass(startRenderPassInfo, vk::SubpassContents::eInline);
+	 
+	 startCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
+	 
+	 startCommandBuffer.bindVertexBuffers(
+		 0,								// index of first buffer
+		 { m_VertexBuffer->m_Buffer },	// Array of buffers
+		 { 0 });							// Array of offsets into the buffers
+	 startCommandBuffer.bindIndexBuffer(m_IndexBuffer->m_Buffer, 0, vk::IndexType::eUint16);
+	 
+	 startCommandBuffer.endRenderPass();
+	 startCommandBuffer.beginRenderPass(drawRenderPassInfo, vk::SubpassContents::eSecondaryCommandBuffers);
+	 
+	 //wait for all recordings to finish
+	 while (!m_ThreadPool->Idle()) {
+		 std::this_thread::sleep_for(std::chrono::milliseconds(TEST_THREAD_JOB_WAIT_TIME));
+	 }
+
+	 startCommandBuffer.executeCommands(threadCount, &m_DrawCommandBuffers[frameIndex * threadCount]);
+
+	 startCommandBuffer.endRenderPass();
+	 startCommandBuffer.end();
+ }
+
+ void HelloTriangleApplication::DrawRenderObjects(DrawRenderObjectsInfo& info)
+ {
+	 vk::CommandBufferInheritanceInfo inheritInfo = {};
+	 inheritInfo.framebuffer = *info.framebuffer;
+	 inheritInfo.occlusionQueryEnable = VK_FALSE;
+	 inheritInfo.pipelineStatistics =
+		 vk::QueryPipelineStatisticFlagBits::eClippingInvocations |
+		 vk::QueryPipelineStatisticFlagBits::eClippingPrimitives |
+		 vk::QueryPipelineStatisticFlagBits::eComputeShaderInvocations |
+		 vk::QueryPipelineStatisticFlagBits::eFragmentShaderInvocations |
+		 vk::QueryPipelineStatisticFlagBits::eGeometryShaderInvocations |
+		 vk::QueryPipelineStatisticFlagBits::eGeometryShaderPrimitives |
+		 vk::QueryPipelineStatisticFlagBits::eInputAssemblyPrimitives |
+		 vk::QueryPipelineStatisticFlagBits::eInputAssemblyVertices |
+		 vk::QueryPipelineStatisticFlagBits::eTessellationControlShaderPatches |
+		 vk::QueryPipelineStatisticFlagBits::eTessellationEvaluationShaderInvocations |
+		 vk::QueryPipelineStatisticFlagBits::eVertexShaderInvocations;
+	 inheritInfo.renderPass = *info.renderPass;
+
+	 vk::CommandBufferBeginInfo beginInfo = {};
+	 beginInfo.flags = vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+	 beginInfo.pInheritanceInfo = &inheritInfo;
+
+	 info.commandBuffer->reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+	 info.commandBuffer->begin(beginInfo);
+	 //info.commandBuffer->beginRenderPass(*info.renderPassBeginInfo, vk::SubpassContents::eSecondaryCommandBuffers);
+
+	 info.commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *info.pipeline);
+	 
+	 info.commandBuffer->bindVertexBuffers(
+		 0,								// index of first buffer
+		 { *info.vertexBuffer },	// Array of buffers
+		 { 0 });							// Array of offsets into the buffers
+	 
+	 info.commandBuffer->bindIndexBuffer(*info.indexBuffer, 0, vk::IndexType::eUint16);
+
+	 if (TestConfiguration::GetInstance().pipelineStatistics) {
+
+		info.commandBuffer->beginQuery(*info.queryPool, info.frameIndex + info.threadId, vk::QueryControlFlags());
+	 }
+
+	 for (int j = 0; j < info.roArrCount; ++j) {
+		 uint32_t dynamic_offset = info.frameIndex * info.roArrStride * info.dynamicAllignment + j * info.dynamicAllignment;
+		 info.commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *info.pipelineLayout, 0, { *info.descriptorSet }, { dynamic_offset });
+		 info.commandBuffer->drawIndexed(info.numOfIndices, 1, 0, 0, 0);
+	 }
+
+	 if (TestConfiguration::GetInstance().pipelineStatistics) {
+		 info.commandBuffer->endQuery(*info.queryPool, info.frameIndex + info.threadId);
+	 }
+	
+	 info.commandBuffer->end();
  }
 
  void HelloTriangleApplication::createCommandPool() {
@@ -472,7 +596,16 @@ void HelloTriangleApplication::createSemaphores() {
 		poolInfo.flags =vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
 	}
 
-	m_CommandPool = m_LogicalDevice.createCommandPool(poolInfo);
+	auto bufferCount = TestConfiguration::GetInstance().drawThreadCount;
+	for (auto i = 0; i < bufferCount; ++i) {
+		m_CommandPool.push_back(m_LogicalDevice.createCommandPool(poolInfo));
+	}
+	//m_CommandPool = m_LogicalDevice.createCommandPool(poolInfo);
+
+	m_StartCommandPool = m_LogicalDevice.createCommandPool(poolInfo);
+
+	poolInfo.flags = vk::CommandPoolCreateFlags();	//<-- not sure if necessary
+	m_SingleTimeCommandPool = m_LogicalDevice.createCommandPool(poolInfo);
 }
 
  void HelloTriangleApplication::createFramebuffers() {
@@ -536,7 +669,7 @@ void HelloTriangleApplication::createSemaphores() {
 		.setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
 
 	std::array<vk::AttachmentDescription, 2> attachments = { colorAttatchment, depthAttatchment };
-	
+
 	vk::RenderPassCreateInfo renderPassInfo;
 	renderPassInfo.setAttachmentCount(attachments.size())
 		.setPAttachments(attachments.data())
@@ -1011,9 +1144,7 @@ void HelloTriangleApplication::mainLoop() {
 
 			updateDynamicUniformBuffer();
 
-			if (!testConfig.reuseCommandBuffers) {
-				recordCommandBuffers();
-			}
+			
 
 			drawFrame();
 			++fps;
@@ -1023,21 +1154,24 @@ void HelloTriangleApplication::mainLoop() {
 	m_LogicalDevice.waitIdle();
 
 	if (testConfig.pipelineStatistics) {
+		for (auto i = 0; i < testConfig.drawThreadCount; ++i) {
+			auto& queryResult = m_QueryResults[i];
 		PipelineStatisticsDataItem item;
-		item.CInvocations = std::to_string(m_QueryResults.clippingInvocations);
-		item.CommandListId = "0";
-		item.CPrimitives = std::to_string(m_QueryResults.clippingPrimitives);
-		item.CSInvocations = std::to_string(m_QueryResults.computeShaderInvocations);
+		item.CInvocations = std::to_string(queryResult.clippingInvocations);
+		item.CommandListId = std::to_string(i);
+		item.CPrimitives = std::to_string(queryResult.clippingPrimitives);
+		item.CSInvocations = std::to_string(queryResult.computeShaderInvocations);
 		item.DSInvocations = "N/A";
-		item.GSInvocations = std::to_string(m_QueryResults.geometryShaderInvocations);
-		item.GSPrimitives = std::to_string(m_QueryResults.geometryShaderPrimitives);
+		item.GSInvocations = std::to_string(queryResult.geometryShaderInvocations);
+		item.GSPrimitives = std::to_string(queryResult.geometryShaderPrimitives);
 		item.HSInvocations = "N/A";
-		item.IAPrimitives = std::to_string(m_QueryResults.inputAssemblyPrimitives);
-		item.IAVertices = std::to_string(m_QueryResults.inputAssemblyVertices);
-		item.PSInvocations = std::to_string(m_QueryResults.fragmentShaderInvocations);
-		item.VSInvocations = std::to_string(m_QueryResults.vertexShaderInvocations);
+		item.IAPrimitives = std::to_string(queryResult.inputAssemblyPrimitives);
+		item.IAVertices = std::to_string(queryResult.inputAssemblyVertices);
+		item.PSInvocations = std::to_string(queryResult.fragmentShaderInvocations);
+		item.VSInvocations = std::to_string(queryResult.vertexShaderInvocations);
 
 		pipelineStatisticsCollection.Add(item);
+		}
 	}
 
 	//save files
@@ -1079,15 +1213,21 @@ void HelloTriangleApplication::drawFrame() {
 	// Aquire image
 	auto imageResult = m_LogicalDevice.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvaliableSemaphore, vk::Fence());
 	
+	/*	WINDOW RESIZE NOT SUPPORTED!
 	if(imageResult.result  == vk::Result::eErrorOutOfDateKHR)
 	{
 		recreateSwapChain();
 		return;
 	} 
+	*/
 	
 	if(imageResult.result != vk::Result::eSuccess && imageResult.result != vk::Result::eSuboptimalKHR)
 	{
 		throw std::runtime_error("Failed to acquire swap chain image!");
+	}
+
+	if (!TestConfiguration::GetInstance().reuseCommandBuffers) {
+		recordCommandBuffers(imageResult.value);
 	}
 
 	//Submitting Command Buffer
@@ -1102,10 +1242,16 @@ void HelloTriangleApplication::drawFrame() {
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &m_CommandBuffers[imageResult.value]; // Use command buffers for aquired image
+	auto threadCount = TestConfiguration::GetInstance().drawThreadCount;
 
-															  // Specify which sempahore to signal once command buffers have been executed.
+	/*
+	submitInfo.commandBufferCount = threadCount;
+	submitInfo.pCommandBuffers = &m_DrawCommandBuffers[imageResult.value * threadCount]; // Use command buffers for aquired image
+	*/
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &m_StartCommandBuffers[imageResult.value];
+
+	// Specify which sempahore to signal once command buffers have been executed.
 	vk::Semaphore signalSemaphores[] = { m_RenderFinishedSemaphore };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
@@ -1125,15 +1271,17 @@ void HelloTriangleApplication::drawFrame() {
 	presentInfo.pResults = nullptr; // Would contain VK result for all images if more than 1
 
 	m_PresentQueue.presentKHR(presentInfo);
+	
+	//TODO: move this up to the beginning?
 	m_PresentQueue.waitIdle();
-
+	
 	if (TestConfiguration::GetInstance().pipelineStatistics) {
 		if(m_LogicalDevice.getQueryPoolResults(
 			m_QueryPool, 
-			imageResult.value, 
-			1, 
-			sizeof m_QueryResults, 
-			&m_QueryResults, 
+			0, 
+			threadCount,
+			sizeof(PipelineStatisticsResult) * threadCount, 
+			m_QueryResults.data(), 
 			sizeof uint64_t, 
 			vk::QueryResultFlagBits::eWait | vk::QueryResultFlagBits::e64) != vk::Result::eSuccess)
 		{
@@ -1143,6 +1291,7 @@ void HelloTriangleApplication::drawFrame() {
 }
 
 void HelloTriangleApplication::cleanup() {
+	delete m_ThreadPool;
 	cleanupSwapChain();
 
 	_aligned_free(m_InstanceUniformBufferObject.model);
@@ -1154,7 +1303,12 @@ void HelloTriangleApplication::cleanup() {
 	m_LogicalDevice.destroySemaphore(m_RenderFinishedSemaphore);
 	m_LogicalDevice.destroySemaphore(m_ImageAvaliableSemaphore);
 
-	m_LogicalDevice.destroyCommandPool(m_CommandPool);
+	auto bufferCount = TestConfiguration::GetInstance().drawThreadCount;	//<-- one extra for m_StartCommandBuffer
+	for (auto i = 0; i < bufferCount; ++i) {
+		m_LogicalDevice.destroyCommandPool(m_CommandPool[i]);
+	}
+	m_LogicalDevice.destroyCommandPool(m_StartCommandPool);
+	m_LogicalDevice.destroyCommandPool(m_SingleTimeCommandPool);
 
 	m_LogicalDevice.destroyQueryPool(m_QueryPool);
 	m_VertexBuffer = nullptr;
@@ -1180,7 +1334,7 @@ void HelloTriangleApplication::recreateSwapChain()
 	createGraphicsPipeline();
 	createDepthResources();
 	createFramebuffers();
-	createCommandBuffers();
+	createCommandBuffer();
 }
 
 void HelloTriangleApplication::cleanupSwapChain()
@@ -1191,7 +1345,13 @@ void HelloTriangleApplication::cleanupSwapChain()
 		m_LogicalDevice.destroyFramebuffer(frameBuffer);
 	}
 
-	m_LogicalDevice.freeCommandBuffers(m_CommandPool, m_CommandBuffers);
+	auto threadCount = TestConfiguration::GetInstance().drawThreadCount;
+	for (auto i = 0; i < threadCount; ++i) {
+		//TODO: free properly. see command buffer allocation for distribution on pools.
+		m_LogicalDevice.freeCommandBuffers(m_CommandPool[i], m_DrawCommandBuffers[i]);
+	}
+
+	m_LogicalDevice.freeCommandBuffers(m_StartCommandPool, m_StartCommandBuffers);
 
 	m_LogicalDevice.destroyPipeline(m_GraphicsPipeline);
 
@@ -1263,7 +1423,7 @@ vk::CommandBuffer HelloTriangleApplication::beginSingleTimeCommands() const
 {
 	vk::CommandBufferAllocateInfo allocInfo = {};
 	allocInfo.level = vk::CommandBufferLevel::ePrimary;
-	allocInfo.commandPool = m_CommandPool;
+	allocInfo.commandPool = m_SingleTimeCommandPool;
 	allocInfo.commandBufferCount = 1;
 
 	vk::CommandBuffer commandBuffer = m_LogicalDevice.allocateCommandBuffers(allocInfo)[0];
@@ -1285,7 +1445,7 @@ void HelloTriangleApplication::endSingleTimeCommands(vk::CommandBuffer commandBu
 	m_GraphicsQueue.submit({ submitInfo }, vk::Fence());
 	m_GraphicsQueue.waitIdle();
 
-	m_LogicalDevice.freeCommandBuffers(m_CommandPool, { m_CommandBuffers });
+	m_LogicalDevice.freeCommandBuffers(m_SingleTimeCommandPool, { commandBuffer });
 }
 
 void HelloTriangleApplication::transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
