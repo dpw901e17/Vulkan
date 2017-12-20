@@ -83,7 +83,7 @@ void HelloTriangleApplication::run()
 	m_QueryResults.resize(threadCount);
 
 	initVulkan();
-#ifndef NDEBUG
+#ifdef _DEBUG
 	updateUniformBuffer();
 	updateDynamicUniformBuffer();
 
@@ -400,24 +400,31 @@ void HelloTriangleApplication::createSemaphores() {
 
  void HelloTriangleApplication::createCommandBuffer() {
 	 auto threadCount = TestConfiguration::GetInstance().drawThreadCount;
+	 auto frameBufferCount = m_SwapChainFramebuffers.size();
 	 //one command buffer per frame buffer per thread:
-	m_DrawCommandBuffers.resize(m_SwapChainFramebuffers.size() * threadCount);
-	m_StartCommandBuffers.resize(m_SwapChainFramebuffers.size());
+	m_DrawCommandBuffers.resize(frameBufferCount * threadCount);
+	m_StartCommandBuffers.resize(frameBufferCount);
 	//allocate room for buffers in command pool:
 
 	vk::CommandBufferAllocateInfo allocInfo = {};
 	allocInfo.level = vk::CommandBufferLevel::eSecondary; //buffers can be primary (called to by user) or secondary (called to by primary buffer)
-	allocInfo.commandBufferCount = m_SwapChainFramebuffers.size();
-
-	for(int i = 0; i < threadCount; ++i)
+	allocInfo.commandBufferCount = 1;
+	
+	for(int i = 0; i < threadCount * frameBufferCount; ++i)
 	{
 		allocInfo.commandPool = m_CommandPool[i];
+
 		auto cmdBufVec = m_LogicalDevice.allocateCommandBuffers(allocInfo);
+
+		m_DrawCommandBuffers[i] = cmdBufVec[0];
+
+		/*
 		for(int j = 0; j < cmdBufVec.size(); ++j)
 		{
 			auto index = i + j*threadCount;
 			m_DrawCommandBuffers[index] = cmdBufVec[j];
 		}
+		*/
 	}
 
 	vk::CommandBufferAllocateInfo startAllocInfo = {};
@@ -522,7 +529,7 @@ void HelloTriangleApplication::createSemaphores() {
 	 
 	 //wait for all recordings to finish
 	 while (!m_ThreadPool->Idle()) {
-		 std::this_thread::sleep_for(std::chrono::milliseconds(TEST_THREAD_JOB_WAIT_TIME));
+		 //std::this_thread::sleep_for(std::chrono::milliseconds(TEST_THREAD_JOB_WAIT_TIME));
 	 }
 
 	 startCommandBuffer.executeCommands(threadCount, &m_DrawCommandBuffers[frameIndex * threadCount]);
@@ -573,7 +580,7 @@ void HelloTriangleApplication::createSemaphores() {
 	 }
 
 	 for (int j = 0; j < info.roArrCount; ++j) {
-		 uint32_t dynamic_offset = info.frameIndex * info.roArrStride * info.dynamicAllignment + j * info.dynamicAllignment;
+		 uint32_t dynamic_offset = info.threadId * info.roArrStride * info.dynamicAllignment + j * info.dynamicAllignment;
 		 info.commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *info.pipelineLayout, 0, { *info.descriptorSet }, { dynamic_offset });
 		 info.commandBuffer->drawIndexed(info.numOfIndices, 1, 0, 0, 0);
 	 }
@@ -586,6 +593,7 @@ void HelloTriangleApplication::createSemaphores() {
  }
 
  void HelloTriangleApplication::createCommandPool() {
+	auto frameBufferCount = m_SwapChainImages.size();
 	QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_PhysicalDevice);
 
 	vk::CommandPoolCreateInfo poolInfo = {};
@@ -598,11 +606,10 @@ void HelloTriangleApplication::createSemaphores() {
 		poolInfo.flags =vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
 	}
 
-	auto bufferCount = TestConfiguration::GetInstance().drawThreadCount;
+	auto bufferCount = TestConfiguration::GetInstance().drawThreadCount * frameBufferCount;
 	for (auto i = 0; i < bufferCount; ++i) {
 		m_CommandPool.push_back(m_LogicalDevice.createCommandPool(poolInfo));
 	}
-	//m_CommandPool = m_LogicalDevice.createCommandPool(poolInfo);
 
 	m_StartCommandPool = m_LogicalDevice.createCommandPool(poolInfo);
 
@@ -960,7 +967,7 @@ std::vector<const char*> getRequiredExtensions()
 	std::vector<const char*> extensions = {
 		VK_KHR_SURFACE_EXTENSION_NAME,
 		VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
-#ifndef NDEBUG
+#ifdef _DEBUG
 		VK_EXT_DEBUG_REPORT_EXTENSION_NAME
 #endif
 	};
