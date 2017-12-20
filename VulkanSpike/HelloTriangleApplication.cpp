@@ -409,12 +409,14 @@ void HelloTriangleApplication::createSemaphores() {
 	allocInfo.level = vk::CommandBufferLevel::eSecondary; //buffers can be primary (called to by user) or secondary (called to by primary buffer)
 	allocInfo.commandBufferCount = m_SwapChainFramebuffers.size();
 
-	auto bufferCount = m_DrawCommandBuffers.size();
-	for (auto i = 0; i < bufferCount; ++i) {
-		allocInfo.commandPool = m_CommandPool[i % threadCount];
-		auto& cmdBufVec = m_LogicalDevice.allocateCommandBuffers(allocInfo);
-		for (auto& cmdBuf : cmdBufVec) {
-			m_DrawCommandBuffers[i] = cmdBuf;
+	for(int i = 0; i < threadCount; ++i)
+	{
+		allocInfo.commandPool = m_CommandPool[i];
+		auto cmdBufVec = m_LogicalDevice.allocateCommandBuffers(allocInfo);
+		for(int j = 0; j < cmdBufVec.size(); ++j)
+		{
+			auto index = i + j*threadCount;
+			m_DrawCommandBuffers[index] = cmdBufVec[j];
 		}
 	}
 
@@ -935,8 +937,7 @@ void HelloTriangleApplication::createSemaphores() {
 
 	vk::PhysicalDeviceFeatures supportedFeatures = device.getFeatures();
 
-	
-	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy && supportedFeatures.pipelineStatisticsQuery;
 }
 
  bool HelloTriangleApplication::checkDeviceExtensionSupport(const vk::PhysicalDevice& device)
