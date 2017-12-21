@@ -38,7 +38,8 @@ int runVulkanTest() {
 	float z = camDistance + base + camera.Near();
 
 	camera.SetPosition({ 0.0f, 0.0f, z, 1.0f });
-	camera.SetFar(z + base + camera.Near());
+	auto magicFactor = 2;
+	camera.SetFar(magicFactor * (z + base + camera.Near()));
 	auto scene = Scene(camera, cubeCountPerDim, paddingFactor);
 
 	HelloTriangleApplication app(scene, win);

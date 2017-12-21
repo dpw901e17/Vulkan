@@ -37,6 +37,7 @@ struct DrawRenderObjectsInfo
 	vk::Buffer* vertexBuffer;
 	vk::Buffer* indexBuffer;
 	vk::Framebuffer* framebuffer;
+	uint64_t dynamicUniformBufferStride;
 };
 
 static void SaveToFile(const std::string& file, const std::string& data)

@@ -85,7 +85,9 @@ void HelloTriangleApplication::run()
 	initVulkan();
 #ifdef _DEBUG
 	updateUniformBuffer();
-	updateDynamicUniformBuffer();
+	updateDynamicUniformBuffer(0);
+	updateDynamicUniformBuffer(1);
+	updateDynamicUniformBuffer(2);
 
 	glm::mat4 model_view = m_UniformBufferObject.view * m_InstanceUniformBufferObject.model[0];
 	glm::vec3 model_space = {0.0f, 0.0f, 0.0f};
@@ -192,7 +194,10 @@ void HelloTriangleApplication::createUniformBuffer()
 	m_InstanceUniformBufferObject.model = static_cast<glm::mat4 *>(_aligned_malloc(buffer_size, m_DynamicAllignment));
 	buffer_create_info.size = buffer_size;
 	// Because no HOST_COHERENT flag we must flush the buffer when writing to it
-	m_DynamicUniformBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+	for (auto i = 0; i < m_SwapChainImages.size(); ++i) {
+		m_DynamicUniformBuffer.push_back(std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent));
+	}
 }
 
 void HelloTriangleApplication::createDescriptorPool()
@@ -228,7 +233,7 @@ void HelloTriangleApplication::createDescriptorSet()
 	bufferInfo.range = m_UniformBuffer->size();
 
 	vk::DescriptorBufferInfo dynamicBufferInfo;
-	dynamicBufferInfo.buffer = m_DynamicUniformBuffer->m_Buffer;
+	dynamicBufferInfo.buffer = m_DynamicUniformBuffer[0]->m_Buffer;
 	dynamicBufferInfo.offset = 0;
 	dynamicBufferInfo.range = m_DynamicAllignment;
 
@@ -249,7 +254,7 @@ void HelloTriangleApplication::createDescriptorSet()
 		vk::WriteDescriptorSet(m_DescriptorSet, 2)
 			.setDescriptorCount(1)
 			.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
-			.setPImageInfo(&image_info),
+			.setPImageInfo(&image_info)
 	};
 
 	m_LogicalDevice.updateDescriptorSets(descriptorWrites, {});
@@ -463,7 +468,7 @@ void HelloTriangleApplication::createSemaphores() {
 	 drawRenderPassInfo.renderArea.extent = m_SwapChainExtent;
 	 
 	 std::array<vk::ClearValue, 2> draw_clear_values = {};
-	 draw_clear_values[0].color = vk::ClearColorValue(std::array<float, 4>{0.0f, 1.0f, 0.0f, 1.0f});
+	 draw_clear_values[0].color = vk::ClearColorValue(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
 	 draw_clear_values[1].depthStencil = vk::ClearDepthStencilValue{ 1.0f, 0 };
 
 	 drawRenderPassInfo.clearValueCount = draw_clear_values.size();
@@ -504,6 +509,7 @@ void HelloTriangleApplication::createSemaphores() {
 		 drawROInfo.vertexBuffer = &m_VertexBuffer->m_Buffer;
 		 drawROInfo.indexBuffer = &m_IndexBuffer->m_Buffer;
 		 drawROInfo.framebuffer = &m_SwapChainFramebuffers[frameIndex];
+		 drawROInfo.dynamicUniformBufferStride = m_DynamicAllignment * m_Scene.renderObjects().size();
 
 		 ThreadJob<DrawRenderObjectsInfo> job = ThreadJob<DrawRenderObjectsInfo>(DrawRenderObjects, drawROInfo);
 		 m_ThreadPool->AddThreadJob(job);
@@ -1065,17 +1071,42 @@ void HelloTriangleApplication::updateUniformBuffer()
 	m_UniformBuffer->unmap();
 }
 
-void HelloTriangleApplication::updateDynamicUniformBuffer() const
+void HelloTriangleApplication::updateDynamicUniformBuffer(int frameIndex) const
 {
 	for (auto index = 0; index < m_Scene.renderObjects().size(); index++)
 	{
 		auto& render_object = m_Scene.renderObjects()[index];
 		auto model = reinterpret_cast<glm::mat4*>(reinterpret_cast<uint64_t>(m_InstanceUniformBufferObject.model) + (index * m_DynamicAllignment));
 		*model = translate(glm::mat4(), { render_object.x(), render_object.y(), render_object.z() });
+
+		//hack around the const to update m_RotationAngle. //TODO: remove rotation feature or const from m_Scene.renderObjects()
+		auto noconst =  const_cast<RenderObject*>(&render_object);
+		noconst->m_RotationAngle = (render_object.m_RotationAngle + 1) % 360;
+
+		if (TestConfiguration::GetInstance().rotateCubes) {
+			auto rotateX = 0.0001f*(index + 1) * std::pow(-1, index);
+			auto rotateY = 0.0002f*(index + 1) * std::pow(-1, index);
+			auto rotateZ = 0.0003f*(index + 1) * std::pow(-1, index);
+			*model = glm::rotate<float>(*model, render_object.m_RotationAngle * 3.14159268 / 180, glm::tvec3<float>{ rotateX, rotateY, rotateZ });
+		}
 	}
 
-	memcpy(m_DynamicUniformBuffer->map(), m_InstanceUniformBufferObject.model, m_DynamicAllignment * m_Scene.renderObjects().size());
-	m_DynamicUniformBuffer->unmap();
+	memcpy(m_DynamicUniformBuffer[frameIndex]->map(), m_InstanceUniformBufferObject.model, m_DynamicAllignment * m_Scene.renderObjects().size());
+	m_DynamicUniformBuffer[frameIndex]->unmap();
+
+	vk::DescriptorBufferInfo dynamicBufferInfo;
+	dynamicBufferInfo.buffer = m_DynamicUniformBuffer[frameIndex]->m_Buffer;
+	dynamicBufferInfo.offset = 0;
+	dynamicBufferInfo.range = m_DynamicAllignment;
+
+	std::array<vk::WriteDescriptorSet, 1> writes = {
+		vk::WriteDescriptorSet(m_DescriptorSet, 1)
+		.setDescriptorCount(1)
+		.setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
+		.setPBufferInfo(&dynamicBufferInfo)
+	};
+
+	m_LogicalDevice.updateDescriptorSets(writes, {});
 }
 
 void HelloTriangleApplication::mainLoop() {
@@ -1104,8 +1135,16 @@ void HelloTriangleApplication::mainLoop() {
 		MSG message;
 		if (PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
 		{
-			if (message.message == WM_QUIT)
+			if (message.message == WM_QUIT) {
 				break;
+			}
+			else if (message.message == WM_KEYDOWN) {
+				//if key pressed is "r":
+				if (message.wParam == 82) {
+					auto& rc = TestConfiguration::GetInstance().rotateCubes;
+					rc = !rc;
+				}
+			}
 
 			TranslateMessage(&message);
 			DispatchMessage(&message);
@@ -1150,7 +1189,7 @@ void HelloTriangleApplication::mainLoop() {
 
 			updateUniformBuffer();
 
-			updateDynamicUniformBuffer();
+			//updateDynamicUniformBuffer();	<-- moved inside drawFrame() as it now needs frameIndex as paramenter
 
 			
 
@@ -1220,7 +1259,8 @@ void HelloTriangleApplication::drawFrame() {
 
 	// Aquire image
 	auto imageResult = m_LogicalDevice.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvaliableSemaphore, vk::Fence());
-	
+	updateDynamicUniformBuffer(imageResult.value);
+
 	/*	WINDOW RESIZE NOT SUPPORTED!
 	if(imageResult.result  == vk::Result::eErrorOutOfDateKHR)
 	{
@@ -1322,7 +1362,7 @@ void HelloTriangleApplication::cleanup() {
 	m_VertexBuffer = nullptr;
 	m_IndexBuffer = nullptr;
 	m_UniformBuffer = nullptr;
-	m_DynamicUniformBuffer = nullptr;
+	m_DynamicUniformBuffer;
 	m_TextureImage = nullptr;
 	m_DepthImage = nullptr;
 	//this->~HelloTriangleApplication(); // HACK: Ensures that the buffers are destroyed before the vulkan instance

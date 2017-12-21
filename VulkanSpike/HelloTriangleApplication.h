@@ -79,7 +79,7 @@ private:
 	vk::CommandPool m_StartCommandPool;
 	std::vector<vk::CommandPool> m_CommandPool;
 	std::vector<vk::CommandBuffer> m_DrawCommandBuffers;
-	std::vector<vk::CommandBuffer> m_StartCommandBuffers;	//<-- one for each frame image
+	std::vector<vk::CommandBuffer> m_StartCommandBuffers;	//<-- one for each frame buffer
 
 	vk::Semaphore m_ImageAvaliableSemaphore;
 	vk::Semaphore m_RenderFinishedSemaphore;
@@ -89,7 +89,7 @@ private:
 	std::unique_ptr<Buffer> m_IndexBuffer;
 	
 	std::unique_ptr<Buffer> m_UniformBuffer;
-	std::unique_ptr<Buffer> m_DynamicUniformBuffer;
+	std::vector<std::unique_ptr<Buffer>> m_DynamicUniformBuffer;	//<-- one for each frame buffer
 
 	vk::DescriptorPool m_DescriptorPool;
 	vk::DescriptorSet m_DescriptorSet;
@@ -173,7 +173,7 @@ private:
 	// Finds and returns the "optimal" extent (i.e. resolution) for images in swapchain 
 	vk::Extent2D chooseSwapExtend(const vk::SurfaceCapabilitiesKHR& capabilities) const;
 	void updateUniformBuffer();
-	void updateDynamicUniformBuffer() const;
+	void updateDynamicUniformBuffer(int frameIndex) const;
 
 	// Handles (window) events
 	void mainLoop();
