@@ -29,35 +29,35 @@ const std::vector<const char*> HelloTriangleApplication::s_DeviceExtensions = {
 
 const std::vector<Vertex> HelloTriangleApplication::s_Vertices = {
 	// Top
-	{ { -0.5f, -0.5,  0.5f },{ 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f }}, 
-	{ {  0.5f, -0.5,  0.5f },{ 1.0f, 0.0f, 1.0f }, { 0.0f, 0.0f }}, 
-	{ {  0.5f,  0.5,  0.5f },{ 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f }},  
-	{ { -0.5f,  0.5,  0.5f },{ 0.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }}, 
+	{ { -0.5f, -0.5,  0.5f }, { 1.0f, 0.0f }}, 
+	{ {  0.5f, -0.5,  0.5f }, { 0.0f, 0.0f }}, 
+	{ {  0.5f,  0.5,  0.5f }, { 0.0f, 1.0f }},  
+	{ { -0.5f,  0.5,  0.5f }, { 1.0f, 1.0f }}, 
 	// Left
-	{ { -0.5f, -0.5, -0.5f },{ 0.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
-	{ { -0.5f, -0.5,  0.5f },{ 0.0f, 0.0f, 1.0f },{ 0.0f, 0.0f } },
-	{ { -0.5f,  0.5,  0.5f },{ 0.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } },
-	{ { -0.5f,  0.5, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 1.0f } },
+	{ { -0.5f, -0.5, -0.5f },{ 1.0f, 0.0f } },
+	{ { -0.5f, -0.5,  0.5f },{ 0.0f, 0.0f } },
+	{ { -0.5f,  0.5,  0.5f },{ 0.0f, 1.0f } },
+	{ { -0.5f,  0.5, -0.5f },{ 1.0f, 1.0f } },
 	// Front
-	{ { -0.5f,  0.5, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
-	{ { -0.5f,  0.5,  0.5f },{ 0.0f, 1.0f, 1.0f },{ 0.0f, 0.0f } },
-	{ {  0.5f,  0.5,  0.5f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 1.0f } } ,
-	{ {  0.5f,  0.5, -0.5f },{ 1.0f, 1.0f, 0.0f },{ 1.0f, 1.0f } },
+	{ { -0.5f,  0.5, -0.5f },{ 1.0f, 0.0f } },
+	{ { -0.5f,  0.5,  0.5f },{ 0.0f, 0.0f } },
+	{ {  0.5f,  0.5,  0.5f },{ 0.0f, 1.0f } } ,
+	{ {  0.5f,  0.5, -0.5f },{ 1.0f, 1.0f } },
 	// Right
-	{ {  0.5f,  0.5, -0.5f },{ 1.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } },
-	{ {  0.5f,  0.5,  0.5f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f } },
-	{ {  0.5f, -0.5,  0.5f },{ 1.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
-	{ {  0.5f, -0.5, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 1.0f, 1.0f } },
+	{ {  0.5f,  0.5, -0.5f },{ 1.0f, 0.0f } },
+	{ {  0.5f,  0.5,  0.5f },{ 0.0f, 0.0f } },
+	{ {  0.5f, -0.5,  0.5f },{ 0.0f, 1.0f } },
+	{ {  0.5f, -0.5, -0.5f },{ 1.0f, 1.0f } },
 	// Back
-	{ {  0.5f, -0.5, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
-	{ {  0.5f, -0.5,  0.5f },{ 1.0f, 0.0f, 1.0f },{ 0.0f, 0.0f } },
-	{ { -0.5f, -0.5,  0.5f },{ 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
-	{ { -0.5f, -0.5, -0.5f },{ 0.0f, 0.0f, 0.0f },{ 1.0f, 1.0f } },
+	{ {  0.5f, -0.5, -0.5f },{ 1.0f, 0.0f } },
+	{ {  0.5f, -0.5,  0.5f },{ 0.0f, 0.0f } },
+	{ { -0.5f, -0.5,  0.5f },{ 0.0f, 1.0f } },
+	{ { -0.5f, -0.5, -0.5f },{ 1.0f, 1.0f } },
 	// Bottom 
-	{ { -0.5f,  0.5, -0.5f },{ 0.0f, 1.0f, 0.0f },{ 1.0f, 1.0f } },
-	{ {  0.5f,  0.5, -0.5f },{ 1.0f, 1.0f, 0.0f },{ 0.0f, 1.0f } },
-	{ {  0.5f, -0.5, -0.5f },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 0.0f } },
-	{ { -0.5f, -0.5, -0.5f },{ 0.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } }
+	{ { -0.5f,  0.5, -0.5f },{ 1.0f, 1.0f } },
+	{ {  0.5f,  0.5, -0.5f },{ 0.0f, 1.0f } },
+	{ {  0.5f, -0.5, -0.5f },{ 0.0f, 0.0f } },
+	{ { -0.5f, -0.5, -0.5f },{ 1.0f, 0.0f } }
 };
 
 const std::vector<uint16_t>HelloTriangleApplication::s_Indices = {
@@ -480,8 +480,8 @@ void HelloTriangleApplication::createSemaphores() {
 
 		 auto& command_buffer = m_DrawCommandBuffers[frameIndex * threadCount + i];
 		 auto roCount = m_Scene.renderObjects().size() / threadCount;
-
-		 drawROInfo.roArrStride = roCount;
+		 auto stride = roCount;
+		 drawROInfo.roArrStride = stride;
 
 		 //last thread handles the remainder after integer division
 		 if (i == threadCount - 1) {
@@ -493,7 +493,7 @@ void HelloTriangleApplication::createSemaphores() {
 		 drawROInfo.dynamicAllignment = m_DynamicAllignment;
 		 drawROInfo.numOfIndices = s_Indices.size();
 		 drawROInfo.pipelineLayout = &m_PipelineLayout;
-		 drawROInfo.roArr = &m_Scene.renderObjects()[i * roCount];
+		 drawROInfo.roArr = &m_Scene.renderObjects()[i * stride];
 		 drawROInfo.roArrCount = roCount;
 		 drawROInfo.frameIndex = frameIndex;
 		 drawROInfo.queryPool = &m_QueryPool;
@@ -1392,7 +1392,7 @@ void HelloTriangleApplication::copyBuffer(vk::Buffer source, vk::Buffer destinat
 void HelloTriangleApplication::createTextureImage()
 {
 	int texWidth, texHeight, texChannels;
-	stbi_uc* pixels = stbi_load("textures/sample_image.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	stbi_uc* pixels = stbi_load("textures/logo-ritter-sport.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 
 	if (!pixels) {
 		throw std::runtime_error("Failed to load texture image!");
