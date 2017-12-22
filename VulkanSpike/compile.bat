@@ -18,3 +18,6 @@ xcopy /Y .\AutoRecord.bat ..\x64\Debug\AutoRecord.bat*
 xcopy /Y .\AutoRecord.bat ..\x64\Release\AutoRecord.bat*
 xcopy /Y .\testrick.bat ..\x64\Debug\testrick.bat*
 xcopy /Y .\testrick.bat ..\x64\Release\testrick.bat*
+
+xcopy /Y CollectWinPerfmonDataCfg.cfg ..\x64\Debug\CollectWinPerfmonDataCfg.cfg*
+xcopy /Y CollectWinPerfmonDataCfg.cfg ..\x64\Release\CollectWinPerfmonDataCfg.cfg*

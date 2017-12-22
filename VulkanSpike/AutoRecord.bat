@@ -27,7 +27,7 @@ REM Perfmonitor
 logman delete %exename%PerfData
 logman create counter %exename%PerfData -cf CollectWinPerfmonDataCfg.cfg -f csv -o "%cd%\perfdata" -si 1
 logman start %exename%PerfData -as
-%exename%.exe -sec %seconds% %drawArg%
+%exename%.exe -sec %seconds% -fps %drawArg%
 logman stop %exename%PerfData 
 
 REM Move files to data directory
@@ -41,4 +41,5 @@ EXIT
  move data_*.csv %dir%\ohmon_%1.csv
  move stat_*.csv %dir%\pipeline_%1.csv
  move conf_*.csv %dir%\
+ move fps_*.csv %dir%\
  GOTO :EOF
