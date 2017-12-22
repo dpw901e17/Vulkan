@@ -1362,10 +1362,11 @@ void HelloTriangleApplication::cleanup() {
 	m_LogicalDevice.destroySemaphore(m_RenderFinishedSemaphore);
 	m_LogicalDevice.destroySemaphore(m_ImageAvaliableSemaphore);
 
-	auto bufferCount = TestConfiguration::GetInstance().drawThreadCount;	//<-- one extra for m_StartCommandBuffer
-	for (auto i = 0; i < bufferCount; ++i) {
-		m_LogicalDevice.destroyCommandPool(m_CommandPool[i]);
+	
+	for (auto& pool : m_CommandPool) {
+		m_LogicalDevice.destroyCommandPool(pool);
 	}
+
 	m_LogicalDevice.destroyCommandPool(m_StartCommandPool);
 	m_LogicalDevice.destroyCommandPool(m_SingleTimeCommandPool);
 
@@ -1374,6 +1375,9 @@ void HelloTriangleApplication::cleanup() {
 	m_IndexBuffer = nullptr;
 	m_UniformBuffer = nullptr;
 	m_DynamicUniformBuffer;
+	for (auto& dynBuf : m_DynamicUniformBuffer) {
+		dynBuf = nullptr;
+	}
 	m_TextureImage = nullptr;
 	m_DepthImage = nullptr;
 	//this->~HelloTriangleApplication(); // HACK: Ensures that the buffers are destroyed before the vulkan instance
@@ -1399,13 +1403,13 @@ void HelloTriangleApplication::recreateSwapChain()
 void HelloTriangleApplication::cleanupSwapChain()
 {
 	m_LogicalDevice.waitIdle();
-	
+	auto framebufferCount = m_SwapChainFramebuffers.size();
 	for (auto frameBuffer  : m_SwapChainFramebuffers) {
 		m_LogicalDevice.destroyFramebuffer(frameBuffer);
 	}
 
 	auto threadCount = TestConfiguration::GetInstance().drawThreadCount;
-	for (auto i = 0; i < threadCount; ++i) {
+	for (auto i = 0; i < threadCount * framebufferCount; ++i) {
 		//TODO: free properly. see command buffer allocation for distribution on pools.
 		m_LogicalDevice.freeCommandBuffers(m_CommandPool[i], m_DrawCommandBuffers[i]);
 	}
