@@ -582,7 +582,7 @@ void HelloTriangleApplication::createSemaphores() {
 
 	 if (TestConfiguration::GetInstance().pipelineStatistics) {
 
-		info.commandBuffer->beginQuery(*info.queryPool, info.frameIndex + info.threadId, vk::QueryControlFlags());
+		info.commandBuffer->beginQuery(*info.queryPool, info.threadId, vk::QueryControlFlags());
 	 }
 
 	 for (int j = 0; j < info.roArrCount; ++j) {
@@ -592,7 +592,7 @@ void HelloTriangleApplication::createSemaphores() {
 	 }
 
 	 if (TestConfiguration::GetInstance().pipelineStatistics) {
-		 info.commandBuffer->endQuery(*info.queryPool, info.frameIndex + info.threadId);
+		 info.commandBuffer->endQuery(*info.queryPool, info.threadId);
 	 }
 	
 	 info.commandBuffer->end();
@@ -1210,21 +1210,21 @@ void HelloTriangleApplication::mainLoop() {
 	if (testConfig.pipelineStatistics) {
 		for (auto i = 0; i < testConfig.drawThreadCount; ++i) {
 			auto& queryResult = m_QueryResults[i];
-		PipelineStatisticsDataItem item;
-		item.CInvocations = std::to_string(queryResult.clippingInvocations);
-		item.CommandListId = std::to_string(i);
-		item.CPrimitives = std::to_string(queryResult.clippingPrimitives);
-		item.CSInvocations = std::to_string(queryResult.computeShaderInvocations);
-		item.DSInvocations = "N/A";
-		item.GSInvocations = std::to_string(queryResult.geometryShaderInvocations);
-		item.GSPrimitives = std::to_string(queryResult.geometryShaderPrimitives);
-		item.HSInvocations = "N/A";
-		item.IAPrimitives = std::to_string(queryResult.inputAssemblyPrimitives);
-		item.IAVertices = std::to_string(queryResult.inputAssemblyVertices);
-		item.PSInvocations = std::to_string(queryResult.fragmentShaderInvocations);
-		item.VSInvocations = std::to_string(queryResult.vertexShaderInvocations);
+			PipelineStatisticsDataItem item;
+			item.CInvocations = std::to_string(queryResult.clippingInvocations);
+			item.CommandListId = std::to_string(i);
+			item.CPrimitives = std::to_string(queryResult.clippingPrimitives);
+			item.CSInvocations = std::to_string(queryResult.computeShaderInvocations);
+			item.DSInvocations = "N/A";
+			item.GSInvocations = std::to_string(queryResult.geometryShaderInvocations);
+			item.GSPrimitives = std::to_string(queryResult.geometryShaderPrimitives);
+			item.HSInvocations = "N/A";
+			item.IAPrimitives = std::to_string(queryResult.inputAssemblyPrimitives);
+			item.IAVertices = std::to_string(queryResult.inputAssemblyVertices);
+			item.PSInvocations = std::to_string(queryResult.fragmentShaderInvocations);
+			item.VSInvocations = std::to_string(queryResult.vertexShaderInvocations);
 
-		pipelineStatisticsCollection.Add(item);
+			pipelineStatisticsCollection.Add(item);
 		}
 	}
 
@@ -1447,7 +1447,7 @@ void HelloTriangleApplication::copyBuffer(vk::Buffer source, vk::Buffer destinat
 void HelloTriangleApplication::createTextureImage()
 {
 	int texWidth, texHeight, texChannels;
-	stbi_uc* pixels = stbi_load("textures/logo-ritter-sport.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	stbi_uc* pixels = stbi_load("textures/texture.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 
 	if (!pixels) {
 		throw std::runtime_error("Failed to load texture image!");
