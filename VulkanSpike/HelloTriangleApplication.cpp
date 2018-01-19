@@ -27,6 +27,13 @@ const std::vector<const char*> HelloTriangleApplication::s_DeviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
+#define TEST_USE_SKULL
+#include "VertexCube.h"
+#include "IndexCube.h"
+#include "VertexSkull.h"
+#include "IndexSkull.h"
+
+/*
 const std::vector<Vertex> HelloTriangleApplication::s_Vertices = {
 	// Top
 	{ { -0.5f, -0.5,  0.5f }, { 1.0f, 0.0f }}, 
@@ -68,6 +75,7 @@ const std::vector<uint16_t>HelloTriangleApplication::s_Indices = {
 	4 * 4 + 0, 4 * 4 + 1, 4 * 4 + 2, 4 * 4 + 2, 4 * 4 + 3, 4 * 4 + 0, // Back
 	4 * 5 + 0, 4 * 5 + 1, 4 * 5 + 2, 4 * 5 + 2, 4 * 5 + 3, 4 * 5 + 0  // Bottom
 };
+*/
 
 HelloTriangleApplication::HelloTriangleApplication(Scene scene, Window& win)
 	: m_Window(win), 
@@ -468,7 +476,7 @@ void HelloTriangleApplication::createSemaphores() {
 	 drawRenderPassInfo.renderArea.extent = m_SwapChainExtent;
 	 
 	 std::array<vk::ClearValue, 2> draw_clear_values = {};
-	 draw_clear_values[0].color = vk::ClearColorValue(std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f});
+	 draw_clear_values[0].color = vk::ClearColorValue(std::array<float, 4>{0.3f, 0.3f, 0.3f, 1.0f});
 	 draw_clear_values[1].depthStencil = vk::ClearDepthStencilValue{ 1.0f, 0 };
 
 	 drawRenderPassInfo.clearValueCount = draw_clear_values.size();
@@ -700,7 +708,14 @@ void HelloTriangleApplication::createSemaphores() {
 
 	//get byte code of shaders
 	auto vertShader = Shader(m_LogicalDevice, "./shaders/vert.spv", vk::ShaderStageFlagBits::eVertex);
+
+
+#ifdef TEST_USE_CUBE
 	auto fragShader = Shader(m_LogicalDevice, "./shaders/frag.spv", vk::ShaderStageFlagBits::eFragment);
+#endif
+#ifdef TEST_USE_SKULL
+	auto fragShader = Shader(m_LogicalDevice, "./shaders/skull.spv", vk::ShaderStageFlagBits::eFragment);
+#endif
 
 	//for later reference:
 	vk::PipelineShaderStageCreateInfo shaderStages[] = { vertShader.m_Info, fragShader.m_Info };

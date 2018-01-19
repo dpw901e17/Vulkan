@@ -16,6 +16,9 @@
     <Filter Include="shaders">
       <UniqueIdentifier>{45a9af03-4a2d-431f-be75-7d9d3cafddfe}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\VertexData">
+      <UniqueIdentifier>{8957e87c-4a2f-4f2b-a065-aae83cb4629d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -68,6 +71,18 @@
     <ClInclude Include="Instance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VertexCube.h">
+      <Filter>Header Files\VertexData</Filter>
+    </ClInclude>
+    <ClInclude Include="IndexCube.h">
+      <Filter>Header Files\VertexData</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexSkull.h">
+      <Filter>Header Files\VertexData</Filter>
+    </ClInclude>
+    <ClInclude Include="IndexSkull.h">
+      <Filter>Header Files\VertexData</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shader.vert">
@@ -77,6 +92,9 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="compile.bat">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="skull.frag">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

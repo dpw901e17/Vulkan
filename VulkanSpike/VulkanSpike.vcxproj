@@ -159,18 +159,23 @@
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="HelloTriangleApplication.h" />
     <ClInclude Include="Image.h" />
+    <ClInclude Include="IndexCube.h" />
+    <ClInclude Include="IndexSkull.h" />
     <ClInclude Include="Instance.h" />
     <ClInclude Include="QueueFamilyIndices.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="SwapChainSupportDetails.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="Vertex.h" />
+    <ClInclude Include="VertexCube.h" />
+    <ClInclude Include="VertexSkull.h" />
     <ClInclude Include="VulkanTest.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="compile.bat" />
     <None Include="shader.frag" />
     <None Include="shader.vert" />
+    <None Include="skull.frag" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\scene-window-system\scene-window-system.vcxproj">

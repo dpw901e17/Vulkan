@@ -14,6 +14,7 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 inTexCoord;
 
 layout(location = 0) out vec2 fragTexCoord;
+layout(location = 1) out vec3 modelPos;
 
 //output to be sent through the entire rest of pipeline.
 out gl_PerVertex {
@@ -23,4 +24,5 @@ out gl_PerVertex {
 void main() {
 	gl_Position = uboView.projection * uboView.view * uboInstance.model * vec4(inPosition, 1.0);
 	fragTexCoord = inTexCoord;
+	modelPos = inPosition;
 }

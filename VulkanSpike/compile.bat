@@ -3,11 +3,14 @@ echo compiling!
 
 C:/VulkanSDK/1.0.65.0/Bin32/glslangValidator.exe -V shader.vert
 C:/VulkanSDK/1.0.65.0/Bin32/glslangValidator.exe -V shader.frag
+C:/VulkanSDK/1.0.65.0/Bin32/glslangValidator.exe -V skull.frag -o skull.spv
 
 xcopy /Y .\vert.spv ..\x64\Debug\shaders\vert.spv*
 xcopy /Y .\frag.spv ..\x64\Debug\shaders\frag.spv*
+xcopy /Y .\skull.spv ..\x64\Debug\shaders\skull.spv*
 xcopy /Y .\vert.spv ..\x64\Release\shaders\vert.spv*
 xcopy /Y .\frag.spv ..\x64\Release\shaders\frag.spv*
+xcopy /Y .\skull.spv ..\x64\Release\shaders\skull.spv*
 xcopy /Y .\texture.png ..\x64\Debug\textures\texture.png*
 xcopy /Y .\texture.png ..\x64\Release\textures\texture.png*
 xcopy /Y .\record.bat ..\x64\Debug\record.bat*
