@@ -124,7 +124,7 @@ void HelloTriangleApplication::createVertexBuffer()
 
 	buffer_create_info.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer;
 
-	m_VertexBuffer = std::make_unique<Buffer>(vk::PhysicalDevice(m_PhysicalDevice), m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eDeviceLocal);
+	m_VertexBuffer = std::make_unique<Buffer>(m_PhysicalDevice, m_LogicalDevice, buffer_create_info, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 	copyBuffer(buffer.m_Buffer, m_VertexBuffer->m_Buffer, buffer_size);
 }
@@ -526,7 +526,7 @@ void HelloTriangleApplication::createSemaphores() {
 
 	 //record setup:	 
 	 auto& startCommandBuffer = m_StartCommandBuffers[frameIndex];
-	 startCommandBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+	 startCommandBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources  );
 	 startCommandBuffer.begin(beginInfo);
 	 startCommandBuffer.beginRenderPass(startRenderPassInfo, vk::SubpassContents::eInline);
 	 
@@ -879,7 +879,9 @@ void HelloTriangleApplication::createSemaphores() {
 	std::set<int> uniqueQueueFamilies = { indices.graphicsFamily, indices.presentFamily };
 	float queuePriorty = 1.0f;
 
-	// Runs over each family and makes a createinfo object for them
+	// Runs over each family and makes a createinfo object for them. Only one
+	// queue is created if the physical device dictates that the present and 
+	// graphics queue is one and
 	for (int queueFamily : uniqueQueueFamilies) {
 		vk::DeviceQueueCreateInfo queueCreateInfo = {};
 		queueCreateInfo.queueFamilyIndex = queueFamily;
