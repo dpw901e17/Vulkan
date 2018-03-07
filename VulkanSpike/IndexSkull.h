@@ -1,6 +1,6 @@
 #pragma once
 #ifdef TEST_USE_SKULL
-const std::vector<uint16_t>HelloTriangleApplication::s_Indices = {
+const std::vector<uint16_t>VulkanApplication::s_Indices = {
 0, 1, 2,
 0, 3, 1,
 0, 4, 3,

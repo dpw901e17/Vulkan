@@ -149,15 +149,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Buffer.cpp" />
-    <ClCompile Include="HelloTriangleApplication.cpp" />
+    <ClCompile Include="VulkanApplication.cpp" />
     <ClCompile Include="Instance.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="VulkanTriangleTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Buffer.h" />
-    <ClInclude Include="HelloTriangleApplication.h" />
+    <ClInclude Include="VulkanApplication.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="IndexCube.h" />
     <ClInclude Include="IndexSkull.h" />
@@ -169,7 +168,6 @@
     <ClInclude Include="Vertex.h" />
     <ClInclude Include="VertexCube.h" />
     <ClInclude Include="VertexSkull.h" />
-    <ClInclude Include="VulkanTest.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="compile.bat" />

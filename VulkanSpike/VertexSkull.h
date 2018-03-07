@@ -1,7 +1,7 @@
 #pragma once
 #ifdef TEST_USE_SKULL
 
-const std::vector<Vertex> HelloTriangleApplication::s_Vertices = {
+const std::vector<Vertex> VulkanApplication::s_Vertices = {
 	{ { 0.926612f, 2.129520f, 0.371058f },{ 0.0f, 0.0f } },
 	{ { 1.004910f, 1.726110f, 0.265615f },{ 0.0f, 0.0f } },
 	{ { 1.016360f, 1.784200f, 0.153777f },{ 0.0f, 0.0f } },

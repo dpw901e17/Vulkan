@@ -1,22 +1,17 @@
 #pragma once
 
-#if false
-	#define GLFW_INCLUDE_VULKAN	//<-- makes sure glfw includes vulkan
-	#define VK_USE_PLATFORM_WIN32_KHR
-	#include <GLFW/glfw3.h>	
-#else
-	#define VK_USE_PLATFORM_WIN32_KHR
-	#include <vulkan\vulkan.hpp>	//<-- can be used to for off-screen rendering
-#endif
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <vulkan\vulkan.hpp>
 
+#include <glm/glm.hpp>
 #include <vector>
 #include <memory>
+
 #include "../scene-window-system/Window.h"
 #include "../scene-window-system/Scene.h"
 #include "../scene-window-system/TestConfiguration.h"
 #include "../scene-window-system/WmiAccess.h"
 #include "../scene-window-system/ThreadPool.h"
-#include <glm/glm.hpp>
 
 #include "Buffer.h"
 #include "Image.h"
@@ -35,13 +30,11 @@ inline std::ostream& operator<<(std::ostream& lhs, const glm::vec3& rhs)
 	return lhs;
 }
 
-class HelloTriangleApplication {
+class VulkanApplication {
 public:
-	explicit HelloTriangleApplication(Scene scene, Window& win);
+	explicit VulkanApplication(Scene scene, Window& win);
 
-	// Does everything!
 	void run();
-
 private:
 	struct
 	{
