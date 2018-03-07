@@ -4,8 +4,7 @@
 #include <string>
 #include "../../scene-window-system/TestConfiguration.h"
 #include "../scene-window-system/Scene.h"
-#include "HelloTriangleApplication.h"
-#include "VulkanTest.h"
+#include "VulkanApplication.h"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;

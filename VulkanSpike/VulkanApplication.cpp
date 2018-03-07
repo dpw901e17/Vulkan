@@ -1,4 +1,4 @@
-#include "HelloTriangleApplication.h"
+#include "VulkanApplication.h"
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
