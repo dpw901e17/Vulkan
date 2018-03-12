@@ -1,5 +1,6 @@
 #include "Instance.h"
 #include <iostream>
+#include <mutex>
 #include "Utility.h"
 
 const std::vector<const char*> Instance::s_RequiredExtensions = {
@@ -45,6 +46,9 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Instance::debugCallback(
 	const char* msg,
 	void* userdata)
 {
+	static std::mutex print_mutex;
+	std::lock_guard<std::mutex> lock(print_mutex);
+	auto id = std::this_thread::get_id();
 	std::cerr << "Validation Layer: " << msg << std::endl;
 	return false;
 }

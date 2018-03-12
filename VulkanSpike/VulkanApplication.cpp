@@ -27,7 +27,7 @@ const std::vector<const char*> VulkanApplication::s_DeviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-#define TEST_USE_SKULL
+#define TEST_USE_CUBE
 #include "VertexCube.h"
 #include "IndexCube.h"
 #include "VertexSkull.h"
@@ -36,15 +36,14 @@ const std::vector<const char*> VulkanApplication::s_DeviceExtensions = {
 VulkanApplication::VulkanApplication(Scene scene, Window& win)
 	: m_Window(win), 
 	  m_Scene(scene),
-	  m_Instance()
+	  m_Instance(),
+	  m_ThreadPool(TestConfiguration::GetInstance().drawThreadCount)
 {
 }
 
 void VulkanApplication::run()
 {
-	auto threadCount = TestConfiguration::GetInstance().drawThreadCount;
-	m_ThreadPool = new ThreadPool<DrawRenderObjectsInfo>(threadCount);
-	m_QueryResults.resize(threadCount);
+	m_QueryResults.resize(TestConfiguration::GetInstance().drawThreadCount);
 
 	initVulkan();
 #ifdef _DEBUG
@@ -436,6 +435,8 @@ void VulkanApplication::createSemaphores() {
 	 /***********************************************************************************/
 	 //Thread recording of draw commands:
 	 auto threadCount = TestConfiguration::GetInstance().drawThreadCount;
+
+	 std::vector<std::future<void>> futures;
 	 for (auto i = 0; i < threadCount; ++i) {
 		 DrawRenderObjectsInfo drawROInfo = {};
 
@@ -467,8 +468,7 @@ void VulkanApplication::createSemaphores() {
 		 drawROInfo.framebuffer = &m_SwapChainFramebuffers[frameIndex];
 		 drawROInfo.dynamicUniformBufferStride = m_DynamicAllignment * m_Scene.renderObjects().size();
 
-		 ThreadJob<DrawRenderObjectsInfo> job = ThreadJob<DrawRenderObjectsInfo>(DrawRenderObjects, drawROInfo);
-		 m_ThreadPool->AddThreadJob(job);
+		 futures.push_back(m_ThreadPool.enqueue(DrawRenderObjects, drawROInfo));
 	 }
 	 /***********************************************************************************/
 
@@ -490,14 +490,26 @@ void VulkanApplication::createSemaphores() {
 	 startCommandBuffer.beginRenderPass(drawRenderPassInfo, vk::SubpassContents::eSecondaryCommandBuffers);
 	 
 	 //wait for all recordings to finish
-	 while (!m_ThreadPool->Idle()) {
-		 //std::this_thread::sleep_for(std::chrono::milliseconds(TEST_THREAD_JOB_WAIT_TIME));
+	 /*while (!m_ThreadPool.idle()) {
+		 using namespace std::chrono_literals;
+		 //std::this_thread::sleep_for(1ms);
+	 }*/
+
+	 for (auto& future : futures) {
+		 future.wait();
 	 }
 
 	 startCommandBuffer.executeCommands(threadCount, &m_DrawCommandBuffers[frameIndex * threadCount]);
 
 	 startCommandBuffer.endRenderPass();
 	 startCommandBuffer.end();
+ }
+
+ void print_command_buffer_status(vk::CommandBuffer& combuf, std::string &&message) {
+	 static std::mutex print_mutex;
+	 std::lock_guard<std::mutex> lock(print_mutex);
+
+	 std::cout << "[" << std::this_thread::get_id() << "] " << (void *) combuf << ": " << message << std::endl;
  }
 
  void VulkanApplication::DrawRenderObjects(DrawRenderObjectsInfo& info)
@@ -1069,7 +1081,6 @@ void VulkanApplication::updateDynamicUniformBuffer(int frameIndex) const
 		.setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
 		.setPBufferInfo(&dynamicBufferInfo)
 	};
-
 	m_LogicalDevice.updateDescriptorSets(writes, {});
 }
 
@@ -1224,10 +1235,15 @@ void VulkanApplication::mainLoop() {
 	delete localNow;
 }
 
+int cnt = 0;
+
 void VulkanApplication::drawFrame() {
+	cnt++;
+
 
 	// Aquire image
 	auto imageResult = m_LogicalDevice.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvaliableSemaphore, vk::Fence());
+	m_GraphicsQueue.waitIdle();
 	updateDynamicUniformBuffer(imageResult.value);
 	
 	if(imageResult.result != vk::Result::eSuccess && imageResult.result != vk::Result::eSuboptimalKHR)
@@ -1296,7 +1312,7 @@ void VulkanApplication::drawFrame() {
 }
 
 void VulkanApplication::cleanup() {
-	delete m_ThreadPool;
+	//delete m_ThreadPool;
 	cleanupSwapChain();
 
 	_aligned_free(m_InstanceUniformBufferObject.model);

@@ -44,7 +44,6 @@ public:
 		m_Device.freeMemory(m_Memory);
     }
 
-
 	vk::Image m_Image;
 	vk::DeviceMemory m_Memory;
 	vk::ImageView m_ImageView;

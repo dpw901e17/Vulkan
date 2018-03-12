@@ -11,7 +11,7 @@
 #include "../scene-window-system/Scene.h"
 #include "../scene-window-system/TestConfiguration.h"
 #include "../scene-window-system/WmiAccess.h"
-#include "../scene-window-system/ThreadPool.h"
+#include "../scene-window-system/ThreadPool.hpp"
 
 #include "Buffer.h"
 #include "Image.h"
@@ -96,7 +96,7 @@ private:
 	DataCollection<WMIDataItem> wmiCollection;
 	DataCollection<PipelineStatisticsDataItem> pipelineStatisticsCollection;
 
-	ThreadPool<DrawRenderObjectsInfo>* m_ThreadPool;
+	thread_pool m_ThreadPool;
 
 	static const std::vector<const char*> s_DeviceExtensions;
 	static const std::vector<Vertex> s_Vertices;
